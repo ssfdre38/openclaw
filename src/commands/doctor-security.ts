@@ -198,7 +198,9 @@ export async function noteSecurityWarnings(cfg: OpenClawConfig) {
     ownerAllowFrom.some((entry) => {
       const trimmed = String(entry).trim();
       // Accept bare numeric IDs (assumes Discord context)
-      if (/^\d+$/.test(trimmed)) return true;
+      if (/^\d+$/.test(trimmed)) {
+        return true;
+      }
 
       // Check for Discord-prefixed format only
       const separatorIndex = trimmed.indexOf(":");
