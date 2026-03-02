@@ -171,14 +171,20 @@ function resolveOwnerAllowFromList(params: {
     if (isNumericOnlyContext) {
       let normalized = trimmed;
       
-      // Normalize Discord mention formats for unprefixed entries too
+      // Normalize mention formats for unprefixed entries
       if (params.providerId === "discord") {
+        // Discord: Strip mention formats and prefixes
         normalized = normalized
           .replace(/^<@!?/, "")
           .replace(/>$/, "")
           .replace(/^discord:/i, "")
           .replace(/^user:/i, "")
           .replace(/^pk:/i, "")
+          .trim();
+      } else if (params.providerId === "telegram") {
+        // Telegram: Strip tg: prefix
+        normalized = normalized
+          .replace(/^tg:/i, "")
           .trim();
       }
       

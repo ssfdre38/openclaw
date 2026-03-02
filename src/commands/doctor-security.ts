@@ -185,15 +185,20 @@ export async function noteSecurityWarnings(cfg: OpenClawConfig) {
   // SYSTEM OWNER CHECK
   // ===========================================
   // Check if Discord is configured with a token but System Owner is not configured
-  const hasDiscordToken = Boolean(cfg.channels?.discord?.token?.trim());
+  // Check all Discord token sources: config field, environment variable, and account tokens
+  const hasDiscordToken = Boolean(
+    cfg.channels?.discord?.token?.trim() ||
+    process.env.DISCORD_BOT_TOKEN?.trim() ||
+    (cfg.channels?.discord?.accounts && Object.keys(cfg.channels.discord.accounts).length > 0)
+  );
   const ownerAllowFrom = cfg.commands?.ownerAllowFrom;
   const ownerConfigured = Array.isArray(ownerAllowFrom) && ownerAllowFrom.length > 0;
   const hasNumericOwner = ownerConfigured && ownerAllowFrom.some(entry => {
     const trimmed = String(entry).trim();
-    // Accept bare numeric IDs
+    // Accept bare numeric IDs (assumes Discord context)
     if (/^\d+$/.test(trimmed)) return true;
     
-    // Check for prefixed format
+    // Check for Discord-prefixed format only
     const separatorIndex = trimmed.indexOf(":");
     if (separatorIndex > 0) {
       const prefix = trimmed.slice(0, separatorIndex);
@@ -211,8 +216,8 @@ export async function noteSecurityWarnings(cfg: OpenClawConfig) {
         return /^\d+$/.test(normalized);
       }
       
-      // Other prefixes: check if remainder is numeric
-      return /^\d+$/.test(remainder);
+      // Only Discord prefixes count as valid System Owner for Discord warnings
+      return false;
     }
     
     // Check for unprefixed Discord mention formats
