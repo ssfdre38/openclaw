@@ -190,10 +190,40 @@ export async function noteSecurityWarnings(cfg: OpenClawConfig) {
   const ownerConfigured = Array.isArray(ownerAllowFrom) && ownerAllowFrom.length > 0;
   const hasNumericOwner = ownerConfigured && ownerAllowFrom.some(entry => {
     const trimmed = String(entry).trim();
-    // Accept bare numeric IDs or discord-prefixed numeric IDs
+    // Accept bare numeric IDs
     if (/^\d+$/.test(trimmed)) return true;
-    if (/^discord:\d+$/.test(trimmed)) return true;
-    return false;
+    
+    // Check for prefixed format
+    const separatorIndex = trimmed.indexOf(":");
+    if (separatorIndex > 0) {
+      const prefix = trimmed.slice(0, separatorIndex);
+      const remainder = trimmed.slice(separatorIndex + 1).trim();
+      
+      // For Discord, normalize mention formats before checking
+      if (prefix.toLowerCase() === "discord") {
+        const normalized = remainder
+          .replace(/^<@!?/, "")
+          .replace(/>$/, "")
+          .replace(/^discord:/i, "")
+          .replace(/^user:/i, "")
+          .replace(/^pk:/i, "")
+          .trim();
+        return /^\d+$/.test(normalized);
+      }
+      
+      // Other prefixes: check if remainder is numeric
+      return /^\d+$/.test(remainder);
+    }
+    
+    // Check for unprefixed Discord mention formats
+    const normalized = trimmed
+      .replace(/^<@!?/, "")
+      .replace(/>$/, "")
+      .replace(/^discord:/i, "")
+      .replace(/^user:/i, "")
+      .replace(/^pk:/i, "")
+      .trim();
+    return /^\d+$/.test(normalized);
   });
 
   if (hasDiscordToken && !ownerConfigured) {

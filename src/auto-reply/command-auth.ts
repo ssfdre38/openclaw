@@ -164,17 +164,36 @@ function resolveOwnerAllowFromList(params: {
         continue;
       }
     }
-    // For unprefixed entries in Discord/Telegram context, only accept numeric IDs
+    // For unprefixed entries in Discord/Telegram context, normalize then validate numeric IDs
     // For other channels or unknown context, accept as-is (will be validated by channel logic)
     const isNumericOnlyContext = params.providerId === "discord" || params.providerId === "telegram";
-    if (!isNumericOnlyContext || /^\d+$/.test(trimmed)) {
-      filtered.push(trimmed);
-    } else {
-      const warnKey = `bare:${params.providerId}:${trimmed}`;
-      if (!warnedInvalidEntries.has(warnKey)) {
-        console.warn(`[security] ownerAllowFrom: ignoring non-numeric entry '${trimmed}' for ${params.providerId} (use user ID, not nickname)`);
-        warnedInvalidEntries.add(warnKey);
+    
+    if (isNumericOnlyContext) {
+      let normalized = trimmed;
+      
+      // Normalize Discord mention formats for unprefixed entries too
+      if (params.providerId === "discord") {
+        normalized = normalized
+          .replace(/^<@!?/, "")
+          .replace(/>$/, "")
+          .replace(/^discord:/i, "")
+          .replace(/^user:/i, "")
+          .replace(/^pk:/i, "")
+          .trim();
       }
+      
+      if (/^\d+$/.test(normalized)) {
+        filtered.push(normalized);
+      } else {
+        const warnKey = `bare:${params.providerId}:${trimmed}`;
+        if (!warnedInvalidEntries.has(warnKey)) {
+          console.warn(`[security] ownerAllowFrom: ignoring non-numeric entry '${trimmed}' for ${params.providerId} (use user ID, not nickname)`);
+          warnedInvalidEntries.add(warnKey);
+        }
+      }
+    } else {
+      // Non-numeric-only channels: accept as-is
+      filtered.push(trimmed);
     }
   }
   return formatAllowFromList({
