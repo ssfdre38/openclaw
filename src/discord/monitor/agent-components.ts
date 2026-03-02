@@ -862,7 +862,6 @@ async function dispatchDiscordComponentEvent(params: {
     channelConfig,
     guildInfo,
     sender: { id: interactionCtx.user.id, name: interactionCtx.user.username, tag: senderTag },
-    allowNameMatching,
   });
   const pinnedMainDmOwner = interactionCtx.isDirectMessage
     ? resolvePinnedMainDmOwnerFromAllowlist({

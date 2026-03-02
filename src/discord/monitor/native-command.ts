@@ -1509,7 +1509,6 @@ async function dispatchDiscordCommandInteraction(params: {
     channelConfig,
     guildInfo,
     sender: { id: sender.id, name: sender.name, tag: sender.tag },
-    allowNameMatching,
   });
   const ctxPayload = finalizeInboundContext({
     Body: prompt,
