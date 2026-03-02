@@ -72,6 +72,7 @@ const BASE_RELOAD_RULES_TAIL: ReloadRule[] = [
   { prefix: "meta", kind: "none" },
   { prefix: "identity", kind: "none" },
   { prefix: "wizard", kind: "none" },
+  { prefix: "logging.level", kind: "hot" },
   { prefix: "logging", kind: "none" },
   { prefix: "models", kind: "none" },
   { prefix: "agents", kind: "none" },
