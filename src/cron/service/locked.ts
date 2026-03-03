@@ -12,11 +12,8 @@ export async function locked<T>(state: CronServiceState, fn: () => Promise<T>): 
   const storePath = state.deps.storePath;
   const storeOp = storeLocks.get(storePath) ?? Promise.resolve();
 
-  // Wait for both previous operations to complete before starting new one
-  await Promise.all([resolveChain(state.op), resolveChain(storeOp)]);
-
-  // Create new operation promise
-  const next = fn();
+  // Create promise chain synchronously (don't await yet) to prevent race
+  const next = Promise.all([resolveChain(state.op), resolveChain(storeOp)]).then(fn);
 
   // Keep the chain alive even when the operation fails.
   const keepAlive = resolveChain(next);

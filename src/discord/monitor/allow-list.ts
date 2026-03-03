@@ -298,7 +298,10 @@ export function resolveDiscordOwnerAccess(params: {
           name: params.sender.name,
           tag: params.sender.tag,
         },
-        { allowNameMatching: params.allowNameMatching },
+        // SECURITY: Always use ID-only matching for System Owner checks
+        // to prevent display name spoofing bypass, regardless of
+        // dangerouslyAllowNameMatching config
+        { allowNameMatching: false },
       )
     : false;
   return { ownerAllowList, ownerAllowed };

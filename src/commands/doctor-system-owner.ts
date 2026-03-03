@@ -15,7 +15,12 @@ export async function maybePromptForSystemOwner(params: {
   const { cfg, prompter, nonInteractive } = params;
 
   // Only prompt if Discord is actually configured with a token
-  const hasDiscordToken = Boolean(cfg.channels?.discord?.token?.trim());
+  // Check all Discord token sources: config field, environment variable, and account tokens
+  const hasDiscordToken = Boolean(
+    cfg.channels?.discord?.token?.trim() ||
+    process.env.DISCORD_BOT_TOKEN?.trim() ||
+    (cfg.channels?.discord?.accounts && Object.keys(cfg.channels.discord.accounts).length > 0),
+  );
   if (!hasDiscordToken) {
     return { cfg, changed: false };
   }
