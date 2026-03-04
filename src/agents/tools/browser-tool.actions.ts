@@ -4,7 +4,7 @@ import { browserSnapshot, browserTabs } from "../../browser/client.js";
 import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
 import { loadConfig } from "../../config/config.js";
 import { wrapExternalContent } from "../../security/external-content.js";
-import { imageResultFromFile, jsonResult } from "./common.js";
+import { chunkedTextResult, imageResultFromFile, jsonResult } from "./common.js";
 
 type BrowserProxyRequest = (opts: {
   method: string;
@@ -203,18 +203,25 @@ export async function executeSnapshotAction(params: {
         details: safeDetails,
       });
     }
-    return {
-      content: [{ type: "text" as const, text: wrappedSnapshot }],
+    // Use chunked output for large snapshots (Discord 2000-char limit)
+    return chunkedTextResult({
+      text: wrappedSnapshot,
       details: safeDetails,
-    };
+      externalContent: {
+        untrusted: true,
+        source: "browser",
+        kind: "snapshot",
+        wrapped: true,
+      },
+    });
   }
   {
     const wrapped = wrapBrowserExternalJson({
       kind: "snapshot",
       payload: snapshot,
     });
-    return {
-      content: [{ type: "text" as const, text: wrapped.wrappedText }],
+    return chunkedTextResult({
+      text: wrapped.wrappedText,
       details: {
         ...wrapped.safeDetails,
         format: "aria",
@@ -229,7 +236,7 @@ export async function executeSnapshotAction(params: {
           wrapped: true,
         },
       },
-    };
+    });
   }
 }
 
@@ -257,14 +264,14 @@ export async function executeConsoleAction(params: {
       payload: result,
       includeWarning: false,
     });
-    return {
-      content: [{ type: "text" as const, text: wrapped.wrappedText }],
+    return chunkedTextResult({
+      text: wrapped.wrappedText,
       details: {
         ...wrapped.safeDetails,
         targetId: typeof result.targetId === "string" ? result.targetId : undefined,
         messageCount: Array.isArray(result.messages) ? result.messages.length : undefined,
       },
-    };
+    });
   }
   const result = await browserConsoleMessages(baseUrl, { level, targetId, profile });
   const wrapped = wrapBrowserExternalJson({
@@ -272,14 +279,14 @@ export async function executeConsoleAction(params: {
     payload: result,
     includeWarning: false,
   });
-  return {
-    content: [{ type: "text" as const, text: wrapped.wrappedText }],
+  return chunkedTextResult({
+    text: wrapped.wrappedText,
     details: {
       ...wrapped.safeDetails,
       targetId: result.targetId,
       messageCount: result.messages.length,
     },
-  };
+  });
 }
 
 export async function executeActAction(params: {
