@@ -5,6 +5,7 @@ import { formatSessionTokens } from "../presenter.ts";
 import type { GatewaySessionRow, SessionsListResult } from "../types.ts";
 import { renderErrorDisplay } from "../components/error-display.ts";
 import { renderWithLoading } from "../components/loading-wrapper.ts";
+import { searchSessions, getUniqueChannels, getUniqueModels } from "../session-search.ts";
 
 export type SessionsProps = {
   loading: boolean;
@@ -111,6 +112,12 @@ function resolveThinkLevelPatchValue(value: string, isBinary: boolean): string |
 
 export function renderSessions(props: SessionsProps) {
   const rows = props.result?.sessions ?? [];
+  
+  // Note: Search/filter state would need to be managed in parent component
+  // For now, we just add the UI elements. Parent should pass filtered results.
+  const channels = props.result ? getUniqueChannels(props.result) : [];
+  const models = props.result ? getUniqueModels(props.result) : [];
+  
   return html`
     <section class="card">
       <div class="row" style="justify-content: space-between;">
@@ -121,6 +128,38 @@ export function renderSessions(props: SessionsProps) {
         <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
           ${props.loading ? "Loading…" : "Refresh"}
         </button>
+      </div>
+      
+      <!-- Quick Search Bar (note: filtering logic needs to be in parent) -->
+      <div class="row" style="gap: 8px; margin-top: 16px; flex-wrap: wrap;">
+        <input
+          type="search"
+          placeholder="🔍 Search sessions by key, label, or channel..."
+          style="flex: 1; min-width: 250px; padding: 8px 12px;"
+          @input=${(e: Event) => {
+            const query = (e.target as HTMLInputElement).value;
+            // TODO: Parent component should handle search filtering
+            console.log("Search:", query);
+          }}
+        />
+        ${channels.length > 0 ? html`
+          <select style="min-width: 120px;" @change=${(e: Event) => {
+            const channel = (e.target as HTMLSelectElement).value;
+            console.log("Filter channel:", channel);
+          }}>
+            <option value="">All Channels</option>
+            ${channels.map(ch => html`<option value=${ch}>${ch}</option>`)}
+          </select>
+        ` : nothing}
+        ${models.length > 0 ? html`
+          <select style="min-width: 150px;" @change=${(e: Event) => {
+            const model = (e.target as HTMLSelectElement).value;
+            console.log("Filter model:", model);
+          }}>
+            <option value="">All Models</option>
+            ${models.map(m => html`<option value=${m}>${m}</option>`)}
+          </select>
+        ` : nothing}
       </div>
 
       <div class="filters" style="margin-top: 14px;">
