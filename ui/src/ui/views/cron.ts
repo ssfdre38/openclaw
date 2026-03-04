@@ -22,6 +22,8 @@ import type {
 } from "../types.ts";
 import type { CronFormState } from "../ui-types.ts";
 import { renderErrorDisplay } from "../components/error-display.ts";
+import { CRON_TEMPLATES, getTemplatesByCategory, applyTemplate } from "../cron-templates.ts";
+import { validateField, debounce } from "../validation-preview.ts";
 
 export type CronProps = {
   basePath: string;
@@ -760,6 +762,70 @@ export function renderCron(props: CronProps) {
           <section class="cron-form-section">
             <div class="cron-form-section__title">${t("cron.form.schedule")}</div>
             <div class="cron-form-section__sub">${t("cron.form.scheduleSub")}</div>
+            
+            <!-- Template Selector -->
+            <div class="form-grid cron-form-grid">
+              <label class="field cron-span-2">
+                <span>📋 ${t("cron.form.template", "Quick Start Template")}</span>
+                <select
+                  @change=${(e: Event) => {
+                    const templateId = (e.target as HTMLSelectElement).value;
+                    if (templateId) {
+                      const template = CRON_TEMPLATES.find(t => t.id === templateId);
+                      if (template) {
+                        const updated = applyTemplate(template, props.form, {
+                          agentId: props.form.agentId,
+                          deliveryChannel: props.form.deliveryChannel,
+                          deliveryTo: props.form.deliveryTo,
+                        });
+                        props.onFormChange(updated);
+                        // Reset select
+                        (e.target as HTMLSelectElement).value = '';
+                      }
+                    }
+                  }}
+                >
+                  <option value="">-- Select a template --</option>
+                  ${getTemplatesByCategory('backup').length > 0 ? html`
+                    <optgroup label="💾 Backup">
+                      ${getTemplatesByCategory('backup').map(t => html`
+                        <option value=${t.id}>${t.icon} ${t.name}</option>
+                      `)}
+                    </optgroup>
+                  ` : nothing}
+                  ${getTemplatesByCategory('monitoring').length > 0 ? html`
+                    <optgroup label="📊 Monitoring">
+                      ${getTemplatesByCategory('monitoring').map(t => html`
+                        <option value=${t.id}>${t.icon} ${t.name}</option>
+                      `)}
+                    </optgroup>
+                  ` : nothing}
+                  ${getTemplatesByCategory('reporting').length > 0 ? html`
+                    <optgroup label="📈 Reporting">
+                      ${getTemplatesByCategory('reporting').map(t => html`
+                        <option value=${t.id}>${t.icon} ${t.name}</option>
+                      `)}
+                    </optgroup>
+                  ` : nothing}
+                  ${getTemplatesByCategory('scraping').length > 0 ? html`
+                    <optgroup label="🔍 Scraping">
+                      ${getTemplatesByCategory('scraping').map(t => html`
+                        <option value=${t.id}>${t.icon} ${t.name}</option>
+                      `)}
+                    </optgroup>
+                  ` : nothing}
+                  ${getTemplatesByCategory('maintenance').length > 0 ? html`
+                    <optgroup label="🔧 Maintenance">
+                      ${getTemplatesByCategory('maintenance').map(t => html`
+                        <option value=${t.id}>${t.icon} ${t.name}</option>
+                      `)}
+                    </optgroup>
+                  ` : nothing}
+                </select>
+                <div class="cron-help">Choose a template to quickly set up a common task</div>
+              </label>
+            </div>
+            
             <div class="form-grid cron-form-grid">
               <label class="field cron-span-2">
                 ${renderFieldLabel(t("cron.form.schedule"))}
