@@ -229,7 +229,9 @@ async function callBrowserProxy(params: {
       ? (JSON.parse(payload.payloadJSON) as BrowserProxyResult)
       : null);
   if (!parsed || typeof parsed !== "object" || !("result" in parsed)) {
-    throw new Error("browser proxy failed");
+    throw new Error(
+      `browser proxy failed (node: ${params.nodeId}, method: ${params.method}, path: ${params.path})`,
+    );
   }
   return parsed;
 }

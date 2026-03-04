@@ -334,12 +334,12 @@ export async function executeActAction(params: {
         : await browserTabs(baseUrl, { profile }).catch(() => []);
       if (!tabs.length) {
         throw new Error(
-          "No Chrome tabs are attached via the OpenClaw Browser Relay extension. Click the toolbar icon on the tab you want to control (badge ON), then retry.",
+          `No Chrome tabs are attached via the OpenClaw Browser Relay extension. Click the extension toolbar icon on the tab you want to control (badge should show "ON"), then retry this action. If the extension icon shows "!" (error) or "…" (connecting), check the extension Options to verify: 1) Port matches relay port (default 18792), 2) Gateway token matches your config. See docs/tools/chrome-extension.md for setup instructions.`,
           { cause: err },
         );
       }
       throw new Error(
-        `Chrome tab not found (stale targetId?). Run action=tabs profile="chrome" and use one of the returned targetIds.`,
+        `Chrome tab not found - the targetId may be stale. Run browser action with action="tabs" and profile="${profile}" to get current tabs, then use one of the returned targetIds. If no tabs are listed, attach a tab by clicking the extension toolbar icon.`,
         { cause: err },
       );
     }
