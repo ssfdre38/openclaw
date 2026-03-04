@@ -3,6 +3,7 @@ import { formatRelativeTimestamp } from "../format.ts";
 import { pathForTab } from "../navigation.ts";
 import { formatSessionTokens } from "../presenter.ts";
 import type { GatewaySessionRow, SessionsListResult } from "../types.ts";
+import { renderErrorDisplay } from "../components/error-display.ts";
 
 export type SessionsProps = {
   loading: boolean;
@@ -179,9 +180,10 @@ export function renderSessions(props: SessionsProps) {
       </div>
 
       ${
-        props.error
-          ? html`<div class="callout danger" style="margin-top: 12px;">${props.error}</div>`
-          : nothing
+        renderErrorDisplay({
+          error: props.error,
+          context: { component: "sessions", action: "load" },
+        })
       }
 
       <div class="muted" style="margin-top: 12px;">

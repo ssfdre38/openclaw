@@ -21,6 +21,7 @@ import type {
   CronSortDir,
 } from "../types.ts";
 import type { CronFormState } from "../ui-types.ts";
+import { renderErrorDisplay } from "../components/error-display.ts";
 
 export type CronProps = {
   basePath: string;
@@ -420,7 +421,7 @@ export function renderCron(props: CronProps) {
         <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
           ${props.loading ? t("cron.summary.refreshing") : t("cron.summary.refresh")}
         </button>
-        ${props.error ? html`<span class="muted">${props.error}</span>` : nothing}
+        ${renderErrorDisplay({ error: props.error, context: { component: "cron", action: "load" }, compact: true })}
       </div>
     </section>
 
