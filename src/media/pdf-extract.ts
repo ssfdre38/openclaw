@@ -1,31 +1,23 @@
-type CanvasModule = typeof import("@napi-rs/canvas");
-type PdfJsModule = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
+import { WorkerPool } from "./worker-pool.js";
 
-let canvasModulePromise: Promise<CanvasModule> | null = null;
-let pdfJsModulePromise: Promise<PdfJsModule> | null = null;
+// Global worker pool for PDF processing (lazy init)
+let workerPool: WorkerPool | null = null;
 
-async function loadCanvasModule(): Promise<CanvasModule> {
-  if (!canvasModulePromise) {
-    canvasModulePromise = import("@napi-rs/canvas").catch((err) => {
-      canvasModulePromise = null;
-      throw new Error(
-        `Optional dependency @napi-rs/canvas is required for PDF image extraction: ${String(err)}`,
-      );
+function getWorkerPool(): WorkerPool {
+  if (!workerPool) {
+    workerPool = new WorkerPool({
+      size: 2, // 2 workers for PDF processing
     });
   }
-  return canvasModulePromise;
+  return workerPool;
 }
 
-async function loadPdfJsModule(): Promise<PdfJsModule> {
-  if (!pdfJsModulePromise) {
-    pdfJsModulePromise = import("pdfjs-dist/legacy/build/pdf.mjs").catch((err) => {
-      pdfJsModulePromise = null;
-      throw new Error(
-        `Optional dependency pdfjs-dist is required for PDF extraction: ${String(err)}`,
-      );
-    });
+// Graceful shutdown hook (if OpenClaw calls this on exit)
+export async function shutdownPdfWorkers(): Promise<void> {
+  if (workerPool) {
+    await workerPool.shutdown();
+    workerPool = null;
   }
-  return pdfJsModulePromise;
 }
 
 export type PdfExtractedImage = {
@@ -47,58 +39,32 @@ export async function extractPdfContent(params: {
   pageNumbers?: number[];
   onImageExtractionError?: (error: unknown) => void;
 }): Promise<PdfExtractedContent> {
-  const { buffer, maxPages, maxPixels, minTextChars, pageNumbers, onImageExtractionError } = params;
-  const { getDocument } = await loadPdfJsModule();
-  const pdf = await getDocument({ data: new Uint8Array(buffer), disableWorker: true }).promise;
+  const { buffer, maxPages, maxPixels, minTextChars, pageNumbers } = params;
 
-  const effectivePages: number[] = pageNumbers
-    ? pageNumbers.filter((p) => p >= 1 && p <= pdf.numPages).slice(0, maxPages)
-    : Array.from({ length: Math.min(pdf.numPages, maxPages) }, (_, i) => i + 1);
-
-  const textParts: string[] = [];
-  for (const pageNum of effectivePages) {
-    const page = await pdf.getPage(pageNum);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item) => ("str" in item ? String(item.str) : ""))
-      .filter(Boolean)
-      .join(" ");
-    if (pageText) {
-      textParts.push(pageText);
-    }
-  }
-
-  const text = textParts.join("\n\n");
-  if (text.trim().length >= minTextChars) {
-    return { text, images: [] };
-  }
-
-  let canvasModule: CanvasModule;
   try {
-    canvasModule = await loadCanvasModule();
+    // Offload PDF extraction to worker thread
+    const pool = getWorkerPool();
+    const result = await pool.run<
+      {
+        buffer: number[];
+        maxPages: number;
+        maxPixels: number;
+        minTextChars: number;
+        pageNumbers?: number[];
+      },
+      PdfExtractedContent
+    >("extract-pdf", {
+      buffer: Array.from(buffer), // Serialize Buffer as array
+      maxPages,
+      maxPixels,
+      minTextChars,
+      pageNumbers,
+    });
+
+    return result;
   } catch (err) {
-    onImageExtractionError?.(err);
-    return { text, images: [] };
+    // Worker failed - log error and return empty
+    params.onImageExtractionError?.(err);
+    return { text: "", images: [] };
   }
-
-  const { createCanvas } = canvasModule;
-  const images: PdfExtractedImage[] = [];
-  const pixelBudget = Math.max(1, maxPixels);
-
-  for (const pageNum of effectivePages) {
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1 });
-    const pagePixels = viewport.width * viewport.height;
-    const scale = Math.min(1, Math.sqrt(pixelBudget / Math.max(1, pagePixels)));
-    const scaled = page.getViewport({ scale: Math.max(0.1, scale) });
-    const canvas = createCanvas(Math.ceil(scaled.width), Math.ceil(scaled.height));
-    await page.render({
-      canvas: canvas as unknown as HTMLCanvasElement,
-      viewport: scaled,
-    }).promise;
-    const png = canvas.toBuffer("image/png");
-    images.push({ type: "image", data: png.toString("base64"), mimeType: "image/png" });
-  }
-
-  return { text, images };
 }
