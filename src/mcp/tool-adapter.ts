@@ -25,7 +25,7 @@ export function createToolDefinitionFromMcp(mcpTool: McpToolInfo): ToolDefinitio
     // OpenClaw doesn't validate against schemas (LLM does), so we just need the shape
     parameters: convertJsonSchemaToParameters(mcpTool.inputSchema),
 
-    execute: async (name, args, signal, callback, context) => {
+    execute: async (_toolCallId: string, args: any, signal?: AbortSignal, _onUpdate?: any, _context?: any) => {
       const manager = getMcpClientManager();
       const client = manager.getClient(mcpTool.serverName);
 
@@ -90,11 +90,11 @@ export function createToolDefinitionFromMcp(mcpTool: McpToolInfo): ToolDefinitio
           text: JSON.stringify(response, null, 2),
         };
       } catch (error) {
-        logger.error(`MCP tool ${mcpTool.fullName} failed:`, error);
+        logger.error(`MCP tool ${mcpTool.fullName} failed: ${String(error)}`);
         throw error;
       }
     },
-  };
+  } as any; // Type assertion to handle schema mismatch between MCP and pi-coding-agent
 }
 
 /**

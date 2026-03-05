@@ -46,7 +46,7 @@ export class McpToolRegistry {
 
       return this.toolDefinitions;
     } catch (error) {
-      logger.error("MCP tool discovery failed:", error);
+      logger.error(`MCP tool discovery failed: ${String(error)}`);
       throw error;
     }
   }

@@ -1,4 +1,3 @@
-import { spawn, type ChildProcess } from "child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import type { McpServerConfig } from "../config/types.tools.js";
@@ -11,7 +10,6 @@ export interface McpClient {
   config: McpServerConfig;
   client: Client;
   transport: StdioClientTransport;
-  process?: ChildProcess;
   connected: boolean;
   lastError?: Error;
   startedAt?: Date;
@@ -33,7 +31,7 @@ export class McpClientManager {
       try {
         await this.startServer(name, config);
       } catch (error) {
-        logger.error(`Failed to start MCP server ${name}:`, error);
+        logger.error(`Failed to start MCP server ${name}: ${String(error)}`);
       }
     }
   }
@@ -51,7 +49,7 @@ export class McpClientManager {
       this.clients.set(name, client);
       logger.info(`MCP server ${name} started successfully`);
     } catch (error) {
-      logger.error(`Failed to start MCP server ${name}:`, error);
+      logger.error(`Failed to start MCP server ${name}: ${String(error)}`);
       throw error;
     }
   }
@@ -72,40 +70,23 @@ export class McpClientManager {
     }
 
     const args = config.args ?? [];
-    const env = {
-      ...process.env,
-      ...(config.env ?? {}),
-    };
-
-    logger.debug(`Spawning MCP server ${name}: ${config.command} ${args.join(" ")}`);
-
-    // Spawn the MCP server process
-    const childProcess = spawn(config.command, args, {
-      env,
-      stdio: ["pipe", "pipe", "pipe"],
-      windowsHide: true,
-    });
-
-    // Handle process errors
-    childProcess.on("error", (error) => {
-      logger.error(`MCP server ${name} process error:`, error);
-    });
-
-    childProcess.on("exit", (code, signal) => {
-      if (!this.shuttingDown) {
-        logger.warn(`MCP server ${name} exited unexpectedly (code: ${code}, signal: ${signal})`);
+    const env: Record<string, string> = {};
+    
+    // Build env with only defined values
+    for (const [key, value] of Object.entries({ ...process.env, ...config.env })) {
+      if (value !== undefined) {
+        env[key] = value;
       }
-    });
+    }
 
-    // Log stderr for debugging
-    childProcess.stderr?.on("data", (data) => {
-      logger.debug(`MCP server ${name} stderr: ${data.toString().trim()}`);
-    });
+    logger.debug(`Starting MCP server ${name}: ${config.command} ${args.join(" ")}`);
 
-    // Create MCP client with stdio transport
+    // StdioClientTransport spawns the process internally
     const transport = new StdioClientTransport({
-      reader: childProcess.stdout!,
-      writer: childProcess.stdin!,
+      command: config.command,
+      args,
+      env,
+      stderr: "pipe", // Capture stderr
     });
 
     const client = new Client(
@@ -128,7 +109,6 @@ export class McpClientManager {
       config,
       client,
       transport,
-      process: childProcess,
       connected: true,
       startedAt: new Date(),
     };
@@ -144,20 +124,15 @@ export class McpClientManager {
     logger.info(`Stopping MCP server: ${name}`);
 
     try {
-      // Close client connection
+      // Close client connection (this will also cleanup the spawned process)
       await mcpClient.client.close();
-
-      // Kill the process if it exists
-      if (mcpClient.process) {
-        mcpClient.process.kill();
-      }
 
       mcpClient.connected = false;
       this.clients.delete(name);
 
       logger.info(`MCP server ${name} stopped successfully`);
     } catch (error) {
-      logger.error(`Error stopping MCP server ${name}:`, error);
+      logger.error(`Error stopping MCP server ${name}: ${String(error)}`);
       throw error;
     }
   }

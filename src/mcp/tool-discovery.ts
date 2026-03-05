@@ -52,7 +52,7 @@ export async function discoverToolsFromServer(
 
     return mcpTools;
   } catch (error) {
-    logger.error(`Failed to discover tools from ${serverName}:`, error);
+    logger.error(`Failed to discover tools from ${serverName}: ${String(error)}`);
     throw error;
   }
 }
@@ -88,7 +88,7 @@ export async function discoverAllTools(): Promise<Map<string, McpToolInfo[]>> {
         logger.debug(`  • ${tool.fullName}: ${tool.description || "(no description)"}`);
       }
     } catch (error) {
-      logger.error(`Failed to discover tools from ${serverName}:`, error);
+      logger.error(`Failed to discover tools from ${serverName}: ${String(error)}`);
       // Continue with other servers
     }
   }
