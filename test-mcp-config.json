@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "github-test": {
+      "transport": "stdio",
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "test_placeholder"
+      },
+      "timeoutSeconds": 30
+    }
+  }
+}

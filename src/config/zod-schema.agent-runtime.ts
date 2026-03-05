@@ -794,6 +794,66 @@ export const ToolsSchema = z
       })
       .strict()
       .optional(),
+    mcpServers: z
+      .record(
+        z.string(),
+        z
+          .object({
+            transport: z.enum(["stdio", "http", "sse"]),
+            enabled: z.boolean().optional(),
+            command: z.string().optional(),
+            args: z.array(z.string()).optional(),
+            env: z.record(z.string(), z.string()).optional(),
+            url: z.string().optional(),
+            timeoutSeconds: z.number().positive().optional(),
+            headers: z.record(z.string(), z.string()).optional(),
+          })
+          .strict()
+          .superRefine((val, ctx) => {
+            // Validate stdio transport requirements
+            if (val.transport === "stdio") {
+              if (!val.command) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  path: ["command"],
+                  message: "command is required for stdio transport",
+                });
+              }
+              if (val.url) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  path: ["url"],
+                  message: "url is not allowed for stdio transport",
+                });
+              }
+            }
+            // Validate http/sse transport requirements
+            if (val.transport === "http" || val.transport === "sse") {
+              if (!val.url) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  path: ["url"],
+                  message: `url is required for ${val.transport} transport`,
+                });
+              }
+              if (val.command) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  path: ["command"],
+                  message: `command is not allowed for ${val.transport} transport`,
+                });
+              }
+              if (val.args) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  path: ["args"],
+                  message: `args is not allowed for ${val.transport} transport`,
+                });
+              }
+            }
+          }),
+      )
+      .optional(),
   })
   .strict()
   .superRefine((value, ctx) => {

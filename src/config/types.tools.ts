@@ -599,4 +599,30 @@ export type ToolsConfig = {
       deny?: string[];
     };
   };
+  /** MCP (Model Context Protocol) server configuration. */
+  mcpServers?: Record<string, McpServerConfig>;
 };
+
+/** MCP server transport type */
+export type McpTransportType = "stdio" | "http" | "sse";
+
+/** MCP server configuration */
+export type McpServerConfig = {
+  /** Transport type (stdio for local processes, http/sse for remote) */
+  transport: McpTransportType;
+  /** Enabled state (default: true) */
+  enabled?: boolean;
+  /** Command to spawn (stdio only) */
+  command?: string;
+  /** Command arguments (stdio only) */
+  args?: string[];
+  /** Environment variables (stdio only) */
+  env?: Record<string, string>;
+  /** Server URL (http/sse only) */
+  url?: string;
+  /** Request timeout in seconds (default: 30) */
+  timeoutSeconds?: number;
+  /** Headers for HTTP requests (http/sse only) */
+  headers?: Record<string, string>;
+};
+

@@ -3,6 +3,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { ToolLoopDetectionConfig } from "../config/types.tools.js";
 import { resolveMergedSafeBinProfileFixtures } from "../infra/exec-safe-bin-runtime-policy.js";
 import { logWarn } from "../logger.js";
+import { getMcpToolRegistry } from "../mcp/index.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
 import { resolveGatewayMessageChannel } from "../utils/message-channel.js";
@@ -501,6 +502,19 @@ export function createOpenClawCodingTools(options?: {
       sessionId: options?.sessionId,
     }),
   ];
+
+  // Add MCP tools to the tool list
+  try {
+    const mcpRegistry = getMcpToolRegistry();
+    const mcpTools = mcpRegistry.getToolDefinitions();
+    if (mcpTools.length > 0) {
+      tools.push(...(mcpTools as unknown as AnyAgentTool[]));
+    }
+  } catch (error) {
+    // MCP registry not initialized yet - this is fine during early startup
+    // Tools will be available once MCP is initialized
+  }
+
   const toolsForMessageProvider = applyMessageProviderToolPolicy(tools, options?.messageProvider);
   // Security: treat unknown/undefined as unauthorized (opt-in, not opt-out)
   const senderIsOwner = options?.senderIsOwner === true;

@@ -20,6 +20,7 @@ import {
 } from "../hooks/internal-hooks.js";
 import { loadInternalHooks } from "../hooks/loader.js";
 import { isTruthyEnvValue } from "../infra/env.js";
+import { getMcpClientManager, initializeMcpTools } from "../mcp/index.js";
 import type { loadOpenClawPlugins } from "../plugins/loader.js";
 import { type PluginServicesHandle, startPluginServices } from "../plugins/services.js";
 import { startBrowserControlServerIfEnabled } from "./server-browser.js";
@@ -137,6 +138,22 @@ export async function startGatewaySidecars(params: {
     params.logChannels.info(
       "skipping channel start (OPENCLAW_SKIP_CHANNELS=1 or OPENCLAW_SKIP_PROVIDERS=1)",
     );
+  }
+
+  // Initialize MCP servers and tools if configured
+  if (params.cfg.tools?.mcpServers) {
+    try {
+      const serverCount = Object.keys(params.cfg.tools.mcpServers).length;
+      params.logHooks.info(`initializing ${serverCount} MCP server(s)...`);
+      
+      const manager = getMcpClientManager();
+      await manager.initialize(params.cfg.tools.mcpServers);
+      
+      const mcpTools = await initializeMcpTools();
+      params.logHooks.info(`discovered ${mcpTools.length} MCP tool(s)`);
+    } catch (error) {
+      params.logHooks.error(`MCP initialization failed: ${String(error)}`);
+    }
   }
 
   if (params.cfg.hooks?.internal?.enabled) {

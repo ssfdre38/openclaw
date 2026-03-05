@@ -1,4 +1,9 @@
 import { Worker } from "node:worker_threads";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export type WorkerTask<T = unknown, R = unknown> = {
   id: string;
@@ -151,8 +156,9 @@ export class WorkerPool {
   }
 
   private spawnWorker(): void {
-    // Create worker with inline code
-    const worker = new Worker(WORKER_CODE, { eval: true });
+    // Create worker from external file (bundler will handle this)
+    const workerPath = join(__dirname, "pdf-worker.js");
+    const worker = new Worker(workerPath);
     const state: WorkerState = {
       worker,
       busy: false,
