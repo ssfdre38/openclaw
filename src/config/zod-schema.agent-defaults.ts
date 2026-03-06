@@ -48,6 +48,39 @@ export const AgentDefaultsSchema = z
     contextTokens: z.number().int().positive().optional(),
     cliBackends: z.record(z.string(), CliBackendSchema).optional(),
     memorySearch: MemorySearchSchema,
+    memoryTiers: z
+      .object({
+        dailies: z
+          .object({
+            enabled: z.boolean().optional(),
+            path: z.string().optional(),
+            daysToKeepLoaded: z.number().int().positive().optional(),
+            scheduleTime: z.string().optional(),
+            autoArchiveOnCompact: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
+        archived: z
+          .object({
+            enabled: z.boolean().optional(),
+            path: z.string().optional(),
+            retentionDays: z.number().int().positive().optional(),
+          })
+          .strict()
+          .optional(),
+        evergreen: z
+          .object({
+            enabled: z.boolean().optional(),
+            path: z.string().optional(),
+            autoPromote: z.boolean().optional(),
+            promotionModel: z.string().optional(),
+          })
+          .strict()
+          .optional(),
+        summaryModel: z.string().optional(),
+      })
+      .strict()
+      .optional(),
     contextPruning: z
       .object({
         mode: z.union([z.literal("off"), z.literal("cache-ttl")]).optional(),

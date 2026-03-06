@@ -8,6 +8,37 @@ export type MemoryConfig = {
   backend?: MemoryBackend;
   citations?: MemoryCitationsMode;
   qmd?: MemoryQmdConfig;
+  dailies?: MemoryDailiesConfig;
+  archived?: MemoryArchivedConfig;
+  evergreen?: MemoryEvergreenConfig;
+};
+
+export type MemoryDailiesConfig = {
+  enabled?: boolean;
+  path?: string; // Default: "memory/dailies"
+  daysToKeepLoaded?: number; // Default: 7 (how many days to auto-load)
+  scheduleTime?: string; // Default: "00:00" (midnight)
+  autoArchiveOnCompact?: boolean; // Default: true
+};
+
+export type MemoryArchivedConfig = {
+  enabled?: boolean;
+  path?: string; // Default: "memory/archived"
+  retentionDays?: number; // Default: 90 (delete after 90 days)
+};
+
+export type MemoryEvergreenConfig = {
+  enabled?: boolean;
+  path?: string; // Default: "memory/evergreen.json"
+  autoPromote?: boolean; // Default: true (AI auto-promotes from archived)
+  promotionModel?: string; // Default: "claude-haiku-4.5"
+};
+
+export type MemoryTiersConfig = {
+  dailies?: MemoryDailiesConfig;
+  archived?: MemoryArchivedConfig;
+  evergreen?: MemoryEvergreenConfig;
+  summaryModel?: string; // Default: "claude-haiku-4.5" (used for highlight extraction)
 };
 
 export type MemoryQmdConfig = {

@@ -674,6 +674,35 @@ export const MemorySearchSchema = z
   .strict()
   .optional();
 export { AgentModelSchema };
+
+// 3-Tier Memory System Schemas
+export const MemoryDailiesSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    path: z.string().optional(),
+    daysToKeepLoaded: z.number().int().positive().optional(),
+    scheduleTime: z.string().optional(),
+    autoArchiveOnCompact: z.boolean().optional(),
+  })
+  .strict();
+
+export const MemoryArchivedSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    path: z.string().optional(),
+    retentionDays: z.number().int().positive().optional(),
+  })
+  .strict();
+
+export const MemoryEvergreenSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    path: z.string().optional(),
+    autoPromote: z.boolean().optional(),
+    promotionModel: z.string().optional(),
+  })
+  .strict();
+
 export const AgentEntrySchema = z
   .object({
     id: z.string(),
