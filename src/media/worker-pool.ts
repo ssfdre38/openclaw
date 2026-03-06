@@ -160,7 +160,8 @@ export class WorkerPool {
   private spawnWorker(): void {
     // Choose worker file based on type
     const workerType = this.config.workerType ?? "pdf";
-    const workerPath = join(__dirname, workerType === "image" ? "image-worker.js" : "pdf-worker.js");
+    // Workers are built to dist root by tsdown
+    const workerPath = join(__dirname, "..", workerType === "image" ? "image-worker.js" : "pdf-worker.js");
     const worker = new Worker(workerPath);
     const state: WorkerState = {
       worker,
