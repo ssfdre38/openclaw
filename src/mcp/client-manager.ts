@@ -13,6 +13,9 @@ export interface McpClient {
   connected: boolean;
   lastError?: Error;
   startedAt?: Date;
+  // Store cleanup references to prevent leaks
+  stderrListener?: (chunk: Buffer) => void;
+  cleanupCallbacks?: (() => void)[];
 }
 
 export class McpClientManager {
@@ -89,6 +92,39 @@ export class McpClientManager {
       stderr: "pipe", // Capture stderr
     });
 
+    // Track cleanup callbacks to prevent leaks
+    const cleanupCallbacks: (() => void)[] = [];
+
+    // Listen for transport errors
+    const errorHandler = (error: Error) => {
+      logger.error(`MCP transport error for ${name}: ${String(error)}`);
+    };
+    transport.onerror = errorHandler;
+    cleanupCallbacks.push(() => {
+      transport.onerror = undefined;
+    });
+
+    const closeHandler = () => {
+      logger.warn(`MCP transport ${name} closed`);
+    };
+    transport.onclose = closeHandler;
+    cleanupCallbacks.push(() => {
+      transport.onclose = undefined;
+    });
+
+    // Get stderr stream to see what the server is outputting
+    let stderrListener: ((chunk: Buffer) => void) | undefined;
+    const stderrStream = transport.stderr;
+    if (stderrStream) {
+      stderrListener = (chunk: Buffer) => {
+        const msg = chunk.toString().trim();
+        if (msg) {
+          logger.debug(`MCP ${name} stderr: ${msg}`);
+        }
+      };
+      stderrStream.on("data", stderrListener);
+    }
+
     const client = new Client(
       {
         name: `openclaw-${name}`,
@@ -100,9 +136,14 @@ export class McpClientManager {
     );
 
     // Connect to the MCP server
-    await client.connect(transport);
-
-    logger.info(`MCP server ${name} connected via stdio`);
+    logger.debug(`Connecting to MCP server ${name}...`);
+    try {
+      await client.connect(transport);
+      logger.info(`MCP server ${name} connected via stdio`);
+    } catch (error) {
+      logger.error(`Failed to connect to MCP server ${name}: ${String(error)}`);
+      throw error;
+    }
 
     return {
       name,
@@ -111,6 +152,8 @@ export class McpClientManager {
       transport,
       connected: true,
       startedAt: new Date(),
+      stderrListener,
+      cleanupCallbacks,
     };
   }
 
@@ -124,6 +167,29 @@ export class McpClientManager {
     logger.info(`Stopping MCP server: ${name}`);
 
     try {
+      // Clean up event listeners to prevent leaks
+      if (mcpClient.stderrListener && mcpClient.transport.stderr) {
+        mcpClient.transport.stderr.removeListener("data", mcpClient.stderrListener);
+      }
+
+      // Run all cleanup callbacks
+      if (mcpClient.cleanupCallbacks) {
+        for (const cleanup of mcpClient.cleanupCallbacks) {
+          try {
+            cleanup();
+          } catch (err) {
+            logger.debug(`Cleanup callback error: ${String(err)}`);
+          }
+        }
+      }
+
+      // Close transport explicitly before closing client
+      try {
+        await mcpClient.transport.close();
+      } catch (err) {
+        logger.debug(`Transport close error (may be expected): ${String(err)}`);
+      }
+
       // Close client connection (this will also cleanup the spawned process)
       await mcpClient.client.close();
 
