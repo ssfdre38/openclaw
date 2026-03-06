@@ -211,11 +211,18 @@ async function optimizeImageWithFallback(params: {
   meta?: { contentType?: string; fileName?: string };
 }): Promise<OptimizedImage> {
   const { buffer, cap, meta } = params;
+  console.log(`[DEBUG] optimizeImageWithFallback: buffer=${buffer.length}B cap=${cap}B contentType=${meta?.contentType} fileName=${meta?.fileName}`);
+  
   const isPng = meta?.contentType === "image/png" || meta?.fileName?.toLowerCase().endsWith(".png");
+  console.log(`[DEBUG] optimizeImageWithFallback: isPng=${isPng}`);
+  
   const hasAlpha = isPng && (await hasAlphaChannel(buffer));
+  console.log(`[DEBUG] optimizeImageWithFallback: hasAlpha=${hasAlpha}`);
 
   if (hasAlpha) {
+    console.log(`[DEBUG] optimizeImageWithFallback: calling optimizeImageToPng`);
     const optimized = await optimizeImageToPng(buffer, cap);
+    console.log(`[DEBUG] optimizeImageWithFallback: optimizeImageToPng returned ${optimized.buffer.length}B`);
     if (optimized.buffer.length <= cap) {
       return { ...optimized, format: "png" };
     }
@@ -226,7 +233,9 @@ async function optimizeImageWithFallback(params: {
     }
   }
 
+  console.log(`[DEBUG] optimizeImageWithFallback: calling optimizeImageToJpeg`);
   const optimized = await optimizeImageToJpeg(buffer, cap, meta);
+  console.log(`[DEBUG] optimizeImageWithFallback: optimizeImageToJpeg returned ${optimized.buffer.length}B`);
   return { ...optimized, format: "jpeg" };
 }
 
@@ -433,11 +442,14 @@ export async function optimizeImageToJpeg(
   resizeSide: number;
   quality: number;
 }> {
+  console.log(`[DEBUG] optimizeImageToJpeg: buffer=${buffer.length}B maxBytes=${maxBytes} isHeic=${isHeicSource(opts)}`);
   // Try a grid of sizes/qualities until under the limit.
   let source = buffer;
   if (isHeicSource(opts)) {
+    console.log(`[DEBUG] optimizeImageToJpeg: calling convertHeicToJpeg`);
     try {
       source = await convertHeicToJpeg(buffer);
+      console.log(`[DEBUG] optimizeImageToJpeg: convertHeicToJpeg returned ${source.length}B`);
     } catch (err) {
       throw new Error(`HEIC image conversion failed: ${String(err)}`, { cause: err });
     }
@@ -453,6 +465,7 @@ export async function optimizeImageToJpeg(
 
   for (const side of sides) {
     for (const quality of qualities) {
+      console.log(`[DEBUG] optimizeImageToJpeg: trying side=${side} quality=${quality}`);
       try {
         const out = await resizeToJpeg({
           buffer: source,
@@ -460,11 +473,13 @@ export async function optimizeImageToJpeg(
           quality,
           withoutEnlargement: true,
         });
+        console.log(`[DEBUG] optimizeImageToJpeg: resizeToJpeg returned ${out.length}B`);
         const size = out.length;
         if (!smallest || size < smallest.size) {
           smallest = { buffer: out, size, resizeSide: side, quality };
         }
         if (size <= maxBytes) {
+          console.log(`[DEBUG] optimizeImageToJpeg: SUCCESS size=${size}B <= maxBytes=${maxBytes}`);
           return {
             buffer: out,
             optimizedSize: size,
@@ -472,7 +487,8 @@ export async function optimizeImageToJpeg(
             quality,
           };
         }
-      } catch {
+      } catch (err) {
+        console.log(`[DEBUG] optimizeImageToJpeg: resizeToJpeg failed: ${err}`);
         // Continue trying other size/quality combinations
       }
     }

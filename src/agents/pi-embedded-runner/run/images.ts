@@ -200,11 +200,13 @@ export async function loadImageFromRef(
     sandbox?: { root: string; bridge: SandboxFsBridge };
   },
 ): Promise<ImageContent | null> {
+  console.log(`[DEBUG] loadImageFromRef: START ref=${JSON.stringify(ref)} workspaceDir=${workspaceDir}`);
   try {
     let targetPath = ref.resolved;
 
     // Resolve paths relative to sandbox or workspace as needed
     if (options?.sandbox) {
+      console.log(`[DEBUG] loadImageFromRef: resolving sandbox path`);
       try {
         const resolved = await resolveSandboxedBridgeMediaPath({
           sandbox: {
@@ -215,6 +217,7 @@ export async function loadImageFromRef(
           mediaPath: targetPath,
         });
         targetPath = resolved.resolved;
+        console.log(`[DEBUG] loadImageFromRef: sandbox resolved to ${targetPath}`);
       } catch (err) {
         log.debug(
           `Native image: sandbox validation failed for ${ref.resolved}: ${err instanceof Error ? err.message : String(err)}`,
@@ -223,8 +226,10 @@ export async function loadImageFromRef(
       }
     } else if (!path.isAbsolute(targetPath)) {
       targetPath = path.resolve(workspaceDir, targetPath);
+      console.log(`[DEBUG] loadImageFromRef: resolved relative path to ${targetPath}`);
     }
     if (options?.workspaceOnly && !options?.sandbox) {
+      console.log(`[DEBUG] loadImageFromRef: asserting sandbox path`);
       const root = options?.sandbox?.root ?? workspaceDir;
       await assertSandboxPath({
         filePath: targetPath,
@@ -234,6 +239,7 @@ export async function loadImageFromRef(
     }
 
     // loadWebMedia handles local file paths (including file:// URLs)
+    console.log(`[DEBUG] loadImageFromRef: calling loadWebMedia for ${targetPath}`);
     const media = options?.sandbox
       ? await loadWebMedia(targetPath, {
           maxBytes: options.maxBytes,
@@ -241,6 +247,7 @@ export async function loadImageFromRef(
           readFile: createSandboxBridgeReadFile({ sandbox: options.sandbox }),
         })
       : await loadWebMedia(targetPath, options?.maxBytes);
+    console.log(`[DEBUG] loadImageFromRef: loadWebMedia returned kind=${media.kind}`);
 
     if (media.kind !== "image") {
       log.debug(`Native image: not an image file: ${targetPath} (got ${media.kind})`);
@@ -298,6 +305,17 @@ export async function detectAndLoadPromptImages(params: {
   loadedCount: number;
   skippedCount: number;
 }> {
+  // TEMPORARY: Disable image detection to prevent gateway lockup
+  // Debug logging added to media.ts and this file to trace the hang
+  console.log(`[DEBUG] prepareImages: DISABLED - skipping image detection to prevent lockup`);
+  return {
+    images: params.existingImages ?? [],
+    detectedRefs: [],
+    loadedCount: 0,
+    skippedCount: 0,
+  };
+
+  /* DISABLED FOR DEBUGGING - REMOVE THIS COMMENT BLOCK WHEN RE-ENABLING
   // If model doesn't support images, return empty results
   if (!modelSupportsImages(params.model)) {
     return {
@@ -357,4 +375,5 @@ export async function detectAndLoadPromptImages(params: {
     loadedCount,
     skippedCount,
   };
+  */ // END DISABLED BLOCK
 }
