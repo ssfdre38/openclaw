@@ -45,13 +45,21 @@ function extractCompactInstructions(params: {
 }
 
 export const handleCompactCommand: CommandHandler = async (params) => {
+  console.log('[DEBUG] handleCompactCommand called:', {
+    body: params.command.commandBodyNormalized,
+    isAuth: params.command.isAuthorizedSender,
+    senderId: params.command.senderId
+  });
+  
   const compactRequested =
     params.command.commandBodyNormalized === "/compact" ||
     params.command.commandBodyNormalized.startsWith("/compact ");
   if (!compactRequested) {
+    console.log('[DEBUG] Not a /compact command, returning null');
     return null;
   }
   if (!params.command.isAuthorizedSender) {
+    console.log('[DEBUG] /compact REJECTED - unauthorized sender:', params.command.senderId);
     logVerbose(
       `Ignoring /compact from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
     );

@@ -228,7 +228,14 @@ function resolveCommandsAllowFromList(params: {
 }): string[] | null {
   const { dock, cfg, accountId, providerId } = params;
   const commandsAllowFrom = cfg.commands?.allowFrom;
+  console.log('[DEBUG] resolveCommandsAllowFromList:', { 
+    providerId, 
+    commandsAllowFrom,
+    hasConfig: !!commandsAllowFrom 
+  });
+  
   if (!commandsAllowFrom || typeof commandsAllowFrom !== "object") {
+    console.log('[DEBUG] No commands.allowFrom config, returning null');
     return null; // Not configured, fall back to channel allowFrom
   }
 
@@ -236,18 +243,29 @@ function resolveCommandsAllowFromList(params: {
   const providerKey = providerId ?? "";
   const providerList = commandsAllowFrom[providerKey];
   const globalList = commandsAllowFrom["*"];
+  
+  console.log('[DEBUG] Checking allowFrom lists:', {
+    providerKey,
+    hasProviderList: Array.isArray(providerList),
+    hasGlobalList: Array.isArray(globalList),
+    providerList,
+    globalList
+  });
 
   const rawList = Array.isArray(providerList) ? providerList : globalList;
   if (!Array.isArray(rawList)) {
+    console.log('[DEBUG] No applicable list found, returning null');
     return null; // No applicable list found
   }
 
-  return formatAllowFromList({
+  const formatted = formatAllowFromList({
     dock,
     cfg,
     accountId,
     allowFrom: rawList,
   });
+  console.log('[DEBUG] Formatted allowFrom list:', formatted);
+  return formatted;
 }
 
 function isConversationLikeIdentity(value: string): boolean {
@@ -436,9 +454,19 @@ export function resolveCommandAuthorization(params: {
       ? senderCandidates.find((candidate) => commandsAllowFromList.includes(candidate))
       : undefined;
     isAuthorizedSender = commandsAllowAll || Boolean(matchedCommandsAllowFrom);
+    
+    // DEBUG: Log authorization check
+    console.log('[DEBUG] Command auth check:', {
+      commandsAllowFromList,
+      commandsAllowAll,
+      senderCandidates,
+      matchedCommandsAllowFrom,
+      isAuthorizedSender
+    });
   } else {
     // Fall back to existing behavior
     isAuthorizedSender = commandAuthorized && isOwnerForCommands;
+    console.log('[DEBUG] Command auth fallback:', { commandAuthorized, isOwnerForCommands, isAuthorizedSender });
   }
 
   return {

@@ -131,6 +131,12 @@ export async function emitResetCommandHooks(params: {
 }
 
 export async function handleCommands(params: HandleCommandsParams): Promise<CommandHandlerResult> {
+  console.log('[DEBUG] handleCommands entry:', {
+    body: params.command.commandBodyNormalized,
+    isAuth: params.command.isAuthorizedSender,
+    senderId: params.command.senderId
+  });
+  
   if (HANDLERS === null) {
     HANDLERS = [
       // Plugin commands are processed first, before built-in commands

@@ -59,8 +59,8 @@ export default defineConfig([
     platform: "node",
   },
   {
-    // Worker threads for offloading heavy operations
-    entry: ["src/media/pdf-worker.ts", "src/media/image-worker.ts"],
+    // Worker threads for offloading heavy operations (PDF only)
+    entry: ["src/media/pdf-worker.ts"],
     env,
     fixedExtension: false,
     platform: "node",

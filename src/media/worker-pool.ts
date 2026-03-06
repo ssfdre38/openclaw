@@ -1,9 +1,4 @@
 import { Worker } from "node:worker_threads";
-import { fileURLToPath } from "node:url";
-import { join, dirname } from "node:path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export type WorkerTask<T = unknown, R = unknown> = {
   id: string;
@@ -18,8 +13,6 @@ export type WorkerPoolConfig = {
   size?: number;
   /** Max tasks queued per worker before rejecting (default: 100) */
   maxQueuedTasks?: number;
-  /** Worker type: 'pdf' or 'image' (default: 'pdf') */
-  workerType?: "pdf" | "image";
 };
 
 // Inline worker code (avoids bundling issues)
@@ -158,11 +151,8 @@ export class WorkerPool {
   }
 
   private spawnWorker(): void {
-    // Choose worker file based on type
-    const workerType = this.config.workerType ?? "pdf";
-    // Workers are built to dist root by tsdown
-    const workerPath = join(__dirname, "..", workerType === "image" ? "image-worker.js" : "pdf-worker.js");
-    const worker = new Worker(workerPath);
+    // Create worker with inline code
+    const worker = new Worker(WORKER_CODE, { eval: true });
     const state: WorkerState = {
       worker,
       busy: false,
