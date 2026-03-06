@@ -119,6 +119,20 @@ export async function startBrowserBridgeServer(params: {
     s.once("error", reject);
   });
 
+  // Configure timeouts to prevent hanging connections
+  server.keepAliveTimeout = 65000; // 65s
+  server.headersTimeout = 66000; // 66s
+  server.requestTimeout = 300000; // 5min
+
+  // Track connections for cleanup
+  const connections = new Set<any>();
+  server.on("connection", (socket) => {
+    connections.add(socket);
+    socket.once("close", () => {
+      connections.delete(socket);
+    });
+  });
+
   const address = server.address() as AddressInfo | null;
   const resolvedPort = address?.port ?? port;
   state.server = server;
@@ -140,6 +154,16 @@ export async function stopBrowserBridgeServer(server: Server): Promise<void> {
   } catch {
     // ignore
   }
+
+  // Force close all active connections to prevent CloseWait
+  (server as any)._connections?.forEach?.((socket: any) => {
+    try {
+      socket.destroy();
+    } catch {
+      // ignore
+    }
+  });
+
   await new Promise<void>((resolve) => {
     server.close(() => resolve());
   });

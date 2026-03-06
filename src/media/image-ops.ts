@@ -2,8 +2,31 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { runExec } from "../process/exec.js";
+import { WorkerPool } from "./worker-pool.js";
 
 type Sharp = typeof import("sharp");
+
+// Global worker pool for image processing (lazy init)
+let imageWorkerPool: WorkerPool | null = null;
+
+function getImageWorkerPool(): WorkerPool {
+  if (!imageWorkerPool) {
+    imageWorkerPool = new WorkerPool({
+      size: 2, // 2 workers for image processing
+      workerType: "image",
+    });
+  }
+  return imageWorkerPool;
+}
+
+// Graceful shutdown hook
+export async function shutdownImageWorkers(): Promise<void> {
+  if (imageWorkerPool) {
+    await imageWorkerPool.shutdown();
+    imageWorkerPool = null;
+  }
+}
+
 
 export type ImageMetadata = {
   width: number;
@@ -316,6 +339,38 @@ export async function resizeToJpeg(params: {
   quality: number;
   withoutEnlargement?: boolean;
 }): Promise<Buffer> {
+  try {
+    // Offload image processing to worker thread
+    const pool = getImageWorkerPool();
+    const result = await pool.run<
+      {
+        buffer: number[];
+        maxSide: number;
+        quality: number;
+        withoutEnlargement?: boolean;
+      },
+      number[]
+    >("resize-to-jpeg", {
+      buffer: Array.from(params.buffer),
+      maxSide: params.maxSide,
+      quality: params.quality,
+      withoutEnlargement: params.withoutEnlargement,
+    });
+
+    return Buffer.from(result);
+  } catch (err) {
+    // Worker failed - fall back to direct processing
+    return await resizeToJpegDirect(params);
+  }
+}
+
+// Direct processing fallback (kept for graceful degradation)
+async function resizeToJpegDirect(params: {
+  buffer: Buffer;
+  maxSide: number;
+  quality: number;
+  withoutEnlargement?: boolean;
+}): Promise<Buffer> {
   if (prefersSips()) {
     // Normalize EXIF orientation BEFORE resizing (sips resize doesn't auto-rotate)
     const normalized = await normalizeExifOrientationSips(params.buffer);
@@ -356,6 +411,20 @@ export async function resizeToJpeg(params: {
 }
 
 export async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
+  try {
+    // Offload to worker thread
+    const pool = getImageWorkerPool();
+    const result = await pool.run<{ buffer: number[] }, number[]>("convert-heic", {
+      buffer: Array.from(buffer),
+    });
+    return Buffer.from(result);
+  } catch (err) {
+    // Worker failed - fall back to direct processing
+    return await convertHeicToJpegDirect(buffer);
+  }
+}
+
+async function convertHeicToJpegDirect(buffer: Buffer): Promise<Buffer> {
   if (prefersSips()) {
     return await sipsConvertToJpeg(buffer);
   }
@@ -390,6 +459,35 @@ export async function resizeToPng(params: {
   compressionLevel?: number;
   withoutEnlargement?: boolean;
 }): Promise<Buffer> {
+  try {
+    // Offload to worker thread
+    const pool = getImageWorkerPool();
+    const result = await pool.run<
+      {
+        buffer: number[];
+        maxSide: number;
+        compressionLevel?: number;
+        withoutEnlargement?: boolean;
+      },
+      number[]
+    >("resize-to-png", {
+      buffer: Array.from(params.buffer),
+      maxSide: params.maxSide,
+      compressionLevel: params.compressionLevel,
+      withoutEnlargement: params.withoutEnlargement,
+    });
+    return Buffer.from(result);
+  } catch (err) {
+    // Worker failed - fall back to direct processing
+    return await resizeToPngDirect(params);
+  }
+}
+
+async function resizeToPngDirect(params: {
+  buffer: Buffer;
+  maxSide: number;
+  compressionLevel?: number;
+}): Promise<Buffer> {
   const sharp = await loadSharp();
   // Compression level 6 is a good balance (0=fastest, 9=smallest)
   const compressionLevel = params.compressionLevel ?? 6;
@@ -400,7 +498,7 @@ export async function resizeToPng(params: {
       width: params.maxSide,
       height: params.maxSide,
       fit: "inside",
-      withoutEnlargement: params.withoutEnlargement !== false,
+      withoutEnlargement: true,
     })
     .png({ compressionLevel })
     .toBuffer();
@@ -480,3 +578,4 @@ async function normalizeExifOrientationSips(buffer: Buffer): Promise<Buffer> {
     return buffer;
   }
 }
+

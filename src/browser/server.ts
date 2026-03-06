@@ -74,6 +74,20 @@ export async function startBrowserControlServerFromConfig(): Promise<BrowserServ
     return null;
   }
 
+  // Configure timeouts to prevent hanging connections
+  server.keepAliveTimeout = 65000; // 65s (longer than typical client timeout)
+  server.headersTimeout = 66000; // 66s (slightly longer than keepAliveTimeout)
+  server.requestTimeout = 300000; // 5min (browser operations can be slow)
+
+  // Track active connections for cleanup
+  const connections = new Set<any>();
+  server.on("connection", (socket) => {
+    connections.add(socket);
+    socket.once("close", () => {
+      connections.delete(socket);
+    });
+  });
+
   state = {
     server,
     port,
@@ -103,6 +117,16 @@ export async function stopBrowserControlServer(): Promise<void> {
   });
 
   if (current.server) {
+    // Force close all active connections to prevent CloseWait
+    const serverRef = current.server;
+    (serverRef as any)._connections?.forEach?.((socket: any) => {
+      try {
+        socket.destroy();
+      } catch {
+        // ignore
+      }
+    });
+
     await new Promise<void>((resolve) => {
       current.server?.close(() => resolve());
     });
