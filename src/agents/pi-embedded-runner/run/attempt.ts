@@ -116,6 +116,7 @@ import {
 } from "./compaction-timeout.js";
 import { pruneProcessedHistoryImages } from "./history-image-prune.js";
 import { detectAndLoadPromptImages } from "./images.js";
+import type { ImageContent } from "@mariozechner/pi-ai";
 import type { EmbeddedRunAttemptParams, EmbeddedRunAttemptResult } from "./types.js";
 
 type PromptBuildHookRunner = {
@@ -1400,6 +1401,8 @@ export async function runEmbeddedAttempt(
           );
         }
 
+        let imageResult: { images: ImageContent[]; detectedRefs: any[]; loadedCount: number; skippedCount: number } | null = null;
+
         try {
           // Idempotent cleanup for legacy sessions with persisted image payloads.
           // Called each run; only mutates already-answered user turns that still carry image blocks.
@@ -1410,7 +1413,7 @@ export async function runEmbeddedAttempt(
 
           // Detect and load images referenced in the prompt for vision-capable models.
           // Images are prompt-local only (pi-like behavior).
-          const imageResult = await detectAndLoadPromptImages({
+          imageResult = await detectAndLoadPromptImages({
             prompt: effectivePrompt,
             workspaceDir: effectiveWorkspace,
             model: params.model,
@@ -1486,6 +1489,24 @@ export async function runEmbeddedAttempt(
           promptError = err;
           promptErrorSource = "prompt";
         } finally {
+          // CRITICAL: Clear image data from memory immediately after prompt
+          // Images can be large (5-20MB base64 each) and cause memory pressure
+          // This ensures they're eligible for GC as soon as the LLM request completes
+          if (imageResult && imageResult.images.length > 0) {
+            log.debug(
+              `embedded run: clearing ${imageResult.images.length} image(s) from memory (runId=${params.runId})`,
+            );
+            // Clear the image data buffers
+            imageResult.images.forEach((img) => {
+              if (img && typeof img === "object" && "data" in img) {
+                // @ts-expect-error - Force clearing the data field to release memory
+                img.data = null;
+              }
+            });
+            // Clear the array reference
+            imageResult.images.length = 0;
+          }
+
           log.debug(
             `embedded run prompt end: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - promptStartedAt}`,
           );
