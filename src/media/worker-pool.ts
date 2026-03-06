@@ -18,6 +18,8 @@ export type WorkerPoolConfig = {
   size?: number;
   /** Max tasks queued per worker before rejecting (default: 100) */
   maxQueuedTasks?: number;
+  /** Worker type: 'pdf' or 'image' (default: 'pdf') */
+  workerType?: "pdf" | "image";
 };
 
 // Inline worker code (avoids bundling issues)
@@ -156,8 +158,9 @@ export class WorkerPool {
   }
 
   private spawnWorker(): void {
-    // Create worker from external file (bundler will handle this)
-    const workerPath = join(__dirname, "pdf-worker.js");
+    // Choose worker file based on type
+    const workerType = this.config.workerType ?? "pdf";
+    const workerPath = join(__dirname, workerType === "image" ? "image-worker.js" : "pdf-worker.js");
     const worker = new Worker(workerPath);
     const state: WorkerState = {
       worker,

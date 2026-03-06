@@ -339,29 +339,18 @@ export async function resizeToJpeg(params: {
   quality: number;
   withoutEnlargement?: boolean;
 }): Promise<Buffer> {
-  try {
-    // Offload image processing to worker thread
-    const pool = getImageWorkerPool();
-    const result = await pool.run<
-      {
-        buffer: number[];
-        maxSide: number;
-        quality: number;
-        withoutEnlargement?: boolean;
-      },
-      number[]
-    >("resize-to-jpeg", {
-      buffer: Array.from(params.buffer),
-      maxSide: params.maxSide,
-      quality: params.quality,
-      withoutEnlargement: params.withoutEnlargement,
-    });
-
-    return Buffer.from(result);
-  } catch (err) {
-    // Worker failed - fall back to direct processing
-    return await resizeToJpegDirect(params);
-  }
+  // TEMP: Disable workers until message format is fixed
+  // Image workers cause gateway lockup due to message format mismatch
+  return await resizeToJpegDirect(params);
+  
+  // TODO: Re-enable after fixing worker message protocol
+  // try {
+  //   const pool = getImageWorkerPool();
+  //   const result = await pool.run<...>("resize-to-jpeg", {...});
+  //   return Buffer.from(result);
+  // } catch (err) {
+  //   return await resizeToJpegDirect(params);
+  // }
 }
 
 // Direct processing fallback (kept for graceful degradation)
@@ -411,17 +400,8 @@ async function resizeToJpegDirect(params: {
 }
 
 export async function convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
-  try {
-    // Offload to worker thread
-    const pool = getImageWorkerPool();
-    const result = await pool.run<{ buffer: number[] }, number[]>("convert-heic", {
-      buffer: Array.from(buffer),
-    });
-    return Buffer.from(result);
-  } catch (err) {
-    // Worker failed - fall back to direct processing
-    return await convertHeicToJpegDirect(buffer);
-  }
+  // TEMP: Disable workers - cause gateway lockup due to message format mismatch
+  return await convertHeicToJpegDirect(buffer);
 }
 
 async function convertHeicToJpegDirect(buffer: Buffer): Promise<Buffer> {
@@ -459,28 +439,8 @@ export async function resizeToPng(params: {
   compressionLevel?: number;
   withoutEnlargement?: boolean;
 }): Promise<Buffer> {
-  try {
-    // Offload to worker thread
-    const pool = getImageWorkerPool();
-    const result = await pool.run<
-      {
-        buffer: number[];
-        maxSide: number;
-        compressionLevel?: number;
-        withoutEnlargement?: boolean;
-      },
-      number[]
-    >("resize-to-png", {
-      buffer: Array.from(params.buffer),
-      maxSide: params.maxSide,
-      compressionLevel: params.compressionLevel,
-      withoutEnlargement: params.withoutEnlargement,
-    });
-    return Buffer.from(result);
-  } catch (err) {
-    // Worker failed - fall back to direct processing
-    return await resizeToPngDirect(params);
-  }
+  // TEMP: Disable workers until message format is fixed
+  return await resizeToPngDirect(params);
 }
 
 async function resizeToPngDirect(params: {
