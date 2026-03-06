@@ -36,6 +36,7 @@ export default defineConfig([
     env,
     fixedExtension: false,
     platform: "node",
+    bundle: false, // Keep as unbundled ES modules for external plugin consumption
   },
   {
     entry: "src/plugin-sdk/account-id.ts",
@@ -43,6 +44,7 @@ export default defineConfig([
     env,
     fixedExtension: false,
     platform: "node",
+    bundle: false, // Keep as unbundled ES modules for external plugin consumption
   },
   {
     entry: "src/extensionAPI.ts",
