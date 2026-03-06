@@ -307,9 +307,9 @@ export async function detectAndLoadPromptImages(params: {
 }> {
   // TEMPORARY: Disable image detection to prevent gateway lockup
   // Debug logging added to media.ts and this file to trace the hang
-  console.log(`[DEBUG] prepareImages: DISABLED - skipping image detection to prevent lockup`);
+  console.log(`[DEBUG] prepareImages: DISABLED - skipping ALL image processing to prevent lockup`);
   return {
-    images: params.existingImages ?? [],
+    images: [], // Don't pass through existingImages - completely disable images
     detectedRefs: [],
     loadedCount: 0,
     skippedCount: 0,
