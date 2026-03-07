@@ -41,7 +41,7 @@ export function registerArchiveTool(api: OpenClawPluginApi): void {
       execute: async (_toolCallId, params: Record<string, unknown>) => {
         try {
           const memoryPath = path.join(
-            ctx.config.openclaw_dir || process.env.OPENCLAW_DIR || ".",
+            ctx.workspaceDir || process.env.OPENCLAW_DIR || ".",
             "memory"
           );
           

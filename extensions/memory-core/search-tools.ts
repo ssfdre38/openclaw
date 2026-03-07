@@ -42,7 +42,7 @@ export function registerMemorySearchTools(api: OpenClawPluginApi) {
    */
   api.registerTool(
     (ctx) => {
-      const memoryPath = path.join(ctx.config.openclaw_dir || ".", "memory");
+      const memoryPath = path.join(ctx.workspaceDir || ".", "memory");
       const dailiesManager = new DailiesManager(memoryPath);
       const evergreenManager = new EvergreenManager(memoryPath);
 
@@ -156,7 +156,7 @@ export function registerMemorySearchTools(api: OpenClawPluginApi) {
    */
   api.registerTool(
     (ctx) => {
-      const memoryPath = path.join(ctx.config.openclaw_dir || ".", "memory");
+      const memoryPath = path.join(ctx.workspaceDir || ".", "memory");
       const evergreenManager = new EvergreenManager(memoryPath);
       
       return {
@@ -219,7 +219,7 @@ export function registerMemorySearchTools(api: OpenClawPluginApi) {
    */
   api.registerTool(
     (ctx) => {
-      const memoryPath = path.join(ctx.config.openclaw_dir || ".", "memory");
+      const memoryPath = path.join(ctx.workspaceDir || ".", "memory");
       const dailiesManager = new DailiesManager(memoryPath);
       
       return {
@@ -283,7 +283,7 @@ export function registerMemorySearchTools(api: OpenClawPluginApi) {
    */
   api.registerTool(
     (ctx) => {
-      const memoryPath = path.join(ctx.config.openclaw_dir || ".", "memory");
+      const memoryPath = path.join(ctx.workspaceDir || ".", "memory");
       const dailiesManager = new DailiesManager(memoryPath);
       
       return {
