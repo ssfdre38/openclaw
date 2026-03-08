@@ -1,4 +1,4 @@
-# 🦞 OpenClaw — Personal AI Assistant
+# 🦞 OpenClaw Community Edition
 
 <p align="center">
     <picture>
@@ -8,96 +8,200 @@
 </p>
 
 <p align="center">
-  <strong>EXFOLIATE! EXFOLIATE!</strong>
+  <strong>Community fork with custom enhancements and fixes</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/openclaw/openclaw/actions/workflows/ci.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/openclaw/openclaw/ci.yml?branch=main&style=for-the-badge" alt="CI status"></a>
-  <a href="https://github.com/openclaw/openclaw/releases"><img src="https://img.shields.io/github/v/release/openclaw/openclaw?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
-  <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
+  <a href="https://github.com/ssfdre38/openclaw-community-edition"><img src="https://img.shields.io/badge/Fork-Community_Edition-blue?style=for-the-badge" alt="Community Edition"></a>
+  <a href="https://github.com/openclaw/openclaw"><img src="https://img.shields.io/badge/Upstream-OpenClaw-green?style=for-the-badge" alt="Upstream"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
+
+## About This Fork
+
+This is a **community-maintained fork** of [OpenClaw](https://github.com/openclaw/openclaw) with custom enhancements, bug fixes, and experimental features. While based on the official OpenClaw project, this edition includes modifications tailored for specific use cases and community contributions.
+
+### Key Differences from Upstream
+
+- ✅ **Large Integer Precision Fix** - Preserves Discord snowflake IDs and other 64-bit integers in tool arguments
+- ✅ **Enhanced Discord MCP Integration** - Split-ID workaround for message operations
+- ✅ **Custom Bug Fixes** - Community-reported issues addressed
+- 🔧 **Experimental Features** - Testing ground for features before upstream contribution
+
+### Branch Structure
+
+- **`main`** - Tracks upstream OpenClaw with minimal changes
+- **`discord-fix`** - Large integer precision preservation for MCP tools
+- **`community-features`** - Experimental features and enhancements
+
+## What is OpenClaw?
 
 **OpenClaw** is a _personal AI assistant_ you run on your own devices.
 It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, BlueBubbles, IRC, Microsoft Teams, Matrix, Feishu, LINE, Mattermost, Nextcloud Talk, Nostr, Synology Chat, Tlon, Twitch, Zalo, Zalo Personal, WebChat). It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 
 If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
 
-[Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [Vision](VISION.md) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Updating](https://docs.openclaw.ai/install/updating) · [Showcase](https://docs.openclaw.ai/start/showcase) · [FAQ](https://docs.openclaw.ai/help/faq) · [Wizard](https://docs.openclaw.ai/start/wizard) · [Nix](https://github.com/openclaw/nix-openclaw) · [Docker](https://docs.openclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
+## Community Edition Enhancements
 
-Preferred setup: run the onboarding wizard (`openclaw onboard`) in your terminal.
-The wizard guides you step by step through setting up the gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
-Works with npm, pnpm, or bun.
-New install? Start here: [Getting started](https://docs.openclaw.ai/start/getting-started)
+### 🔧 Large Integer Precision Fix
+**Branch:** `discord-fix`  
+**Status:** ✅ Implemented
 
-## Sponsors
+Fixes precision loss for Discord snowflake IDs and other 64-bit integers when passed through tool execution pipeline.
 
-| OpenAI                                                            | Vercel                                                            | Blacksmith                                                                   | Convex                                                                |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [![OpenAI](docs/assets/sponsors/openai.svg)](https://openai.com/) | [![Vercel](docs/assets/sponsors/vercel.svg)](https://vercel.com/) | [![Blacksmith](docs/assets/sponsors/blacksmith.svg)](https://blacksmith.sh/) | [![Convex](docs/assets/sponsors/convex.svg)](https://www.convex.dev/) |
+**Files changed:**
+- `src/agents/openai-ws-stream.ts` - Added `parseJsonPreservingLargeIntegers()`
+- `PRECISION-LOSS-WORKAROUND.md` - Documentation for required node_modules patch
 
-**Subscriptions (OAuth):**
+**Impact:**
+- Discord MCP reply, reactions, editing, and threads now work correctly
+- Any tool using large integer IDs benefits
 
-- **[OpenAI](https://openai.com/)** (ChatGPT/Codex)
+### 📚 Documentation Improvements
 
-Model note: while many providers/models are supported, for the best experience and lower prompt-injection risk use the strongest latest-generation model available to you. See [Onboarding](https://docs.openclaw.ai/start/onboarding).
+- `PRECISION-LOSS-WORKAROUND.md` - Critical workaround for AJV type coercion
+- Enhanced inline documentation for custom changes
 
-## Models (selection + auth)
-
-- Models config + CLI: [Models](https://docs.openclaw.ai/concepts/models)
-- Auth profile rotation (OAuth vs API keys) + fallbacks: [Model failover](https://docs.openclaw.ai/concepts/model-failover)
-
-## Install (recommended)
+## Installation (Community Edition)
 
 Runtime: **Node ≥22**.
 
 ```bash
-npm install -g openclaw@latest
-# or: pnpm add -g openclaw@latest
+# Clone the community edition
+git clone https://github.com/ssfdre38/openclaw-community-edition.git
+cd openclaw-community-edition
 
-openclaw onboard --install-daemon
+# Switch to desired branch
+git checkout discord-fix  # For precision fixes
+# or
+git checkout main         # For upstream tracking
+
+# Install dependencies
+## Upstream Documentation
+
+For general OpenClaw documentation, see the official docs:
+
+- [Website](https://openclaw.ai)
+- [Documentation](https://docs.openclaw.ai)
+- [Vision](VISION.md)
+- [Getting Started](https://docs.openclaw.ai/start/getting-started)
+- [Models & Auth](https://docs.openclaw.ai/concepts/models)
+- [FAQ](https://docs.openclaw.ai/help/faq)
+
+## Contributing to Community Edition
+
+We welcome contributions! If you've fixed a bug or added a feature:
+
+1. Fork this repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Commit your changes
+4. Push to your fork
+5. Open a Pull Request
+
+### Submitting to Upstream
+
+If your contribution is generally useful, consider submitting it to the upstream OpenClaw project at [openclaw/openclaw](https://github.com/openclaw/openclaw).
+
+## Development from Source
+
+Prefer `pnpm` for builds from source. Bun is optional for running TypeScript directly.
+
+```bash
+git clone https://github.com/ssfdre38/openclaw-community-edition.git
+cd openclaw-community-edition
+
+# Choose your branch
+git checkout discord-fix
+
+pnpm install
+pnpm build
+
+# Run gateway
+node dist/index.js gateway --port 18789
 ```
 
-The wizard installs the Gateway daemon (launchd/systemd user service) so it stays running.
+## Syncing with Upstream
 
-## Quick start (TL;DR)
+To pull in updates from the official OpenClaw repository:
+
+```bash
+# Add upstream remote (one-time setup)
+git remote add upstream https://github.com/openclaw/openclaw.git
+
+# Fetch and merge upstream changes
+git fetch upstream
+git checkout main
+git merge upstream/main
+
+# Rebuild
+pnpm install
+pnpm build
+```
+
+## Known Issues & Workarounds
+
+### AJV Type Coercion (CRITICAL)
+
+**Problem:** The `@mariozechner/pi-ai` library uses AJV with `coerceTypes: true`, causing precision loss for large integers.
+
+**Solution:** See `PRECISION-LOSS-WORKAROUND.md` for the required manual patch.
+
+**Automated solution:** Consider using `patch-package` to automate this workaround.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+This is a fork of [OpenClaw](https://github.com/openclaw/openclaw), also under MIT License.
+
+## Credits
+
+- **Original Project:** [OpenClaw](https://github.com/openclaw/openclaw) by the OpenClaw team
+- **Community Edition Maintainer:** [@ssfdre38](https://github.com/ssfdre38)
+- **Contributors:** See [Contributors](https://github.com/ssfdre38/openclaw-community-edition/graphs/contributors)
+
+## Support
+
+- **Community Edition Issues:** [GitHub Issues](https://github.com/ssfdre38/openclaw-community-edition/issues)
+- **Upstream Issues:** [OpenClaw Issues](https://github.com/openclaw/openclaw/issues)
+- **OpenClaw Discord:** [discord.gg/clawd](https://discord.gg/clawd)
+
+---
+
+**Note:** This is an unofficial community fork. For official releases and support, visit [openclaw.ai](https://openclaw.ai).
+
+# Build
+pnpm build
+
+# Run gateway
+node dist/index.js gateway --port 18789
+```
+
+### Important: AJV Workaround
+
+**⚠️ Critical:** After `pnpm install`, you must manually patch the AJV validator:
+
+**File:** `node_modules/@mariozechner/pi-ai/dist/utils/validation.js`  
+**Line 13:** Change `coerceTypes: true` to `coerceTypes: false`
+
+See `PRECISION-LOSS-WORKAROUND.md` for details and automation options.
+
+## Quick Start (TL;DR)
 
 Runtime: **Node ≥22**.
 
 Full beginner guide (auth, pairing, channels): [Getting started](https://docs.openclaw.ai/start/getting-started)
 
 ```bash
-openclaw onboard --install-daemon
+# Run from built directory
+node dist/index.js gateway --port 18789 --verbose
 
+# Or use the global command if installed
 openclaw gateway --port 18789 --verbose
 
-# Send a message
-openclaw message send --to +1234567890 --message "Hello from OpenClaw"
-
-# Talk to the assistant (optionally deliver back to any connected channel: WhatsApp/Telegram/Slack/Discord/Google Chat/Signal/iMessage/BlueBubbles/IRC/Microsoft Teams/Matrix/Feishu/LINE/Mattermost/Nextcloud Talk/Nostr/Synology Chat/Tlon/Twitch/Zalo/Zalo Personal/WebChat)
+# Talk to the assistant
 openclaw agent --message "Ship checklist" --thinking high
 ```
-
-Upgrading? [Updating guide](https://docs.openclaw.ai/install/updating) (and run `openclaw doctor`).
-
-## Development channels
-
-- **stable**: tagged releases (`vYYYY.M.D` or `vYYYY.M.D-<patch>`), npm dist-tag `latest`.
-- **beta**: prerelease tags (`vYYYY.M.D-beta.N`), npm dist-tag `beta` (macOS app may be missing).
-- **dev**: moving head of `main`, npm dist-tag `dev` (when published).
-
-Switch channels (git + npm): `openclaw update --channel stable|beta|dev`.
-Details: [Development channels](https://docs.openclaw.ai/install/development-channels).
-
-## From source (development)
-
-Prefer `pnpm` for builds from source. Bun is optional for running TypeScript directly.
-
-```bash
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
-
-pnpm install
 pnpm ui:build # auto-installs UI deps on first run
 pnpm build
 
