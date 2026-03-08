@@ -49,6 +49,54 @@ import {
 } from "./stream-message-shared.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Safe JSON parser that preserves large integers as strings
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * JavaScript's Number.MAX_SAFE_INTEGER (2^53 - 1).
+ * Numbers beyond this lose precision when represented as JS numbers.
+ */
+const MAX_SAFE_INTEGER = 9007199254740991;
+
+/**
+ * Parse JSON while converting large integers to strings to avoid precision loss.
+ * This is critical for Discord snowflake IDs and other large integer identifiers.
+ * 
+ * Uses regex to wrap large integers in quotes BEFORE parsing, since JSON.parse's
+ * reviver runs AFTER precision is already lost.
+ * 
+ * Example: {"messageId": 1480095255154917442} -> {"messageId": "1480095255154917442"}
+ */
+function parseJsonPreservingLargeIntegers(json: string): Record<string, unknown> {
+  try {
+    // Regex to find integers that exceed safe range
+    // Matches integers with 16+ digits (anything >= 10^15 exceeds safe range)
+    // Looks for: number not already in quotes, with 16 or more digits
+    const largeIntegerRegex = /:\s*(-?\d{16,})\b/g;
+    
+    // Wrap large integers in quotes
+    const safedJson = json.replace(largeIntegerRegex, (match, number) => {
+      const numValue = Math.abs(parseFloat(number));
+      if (numValue > MAX_SAFE_INTEGER) {
+        log(`[precision-fix] Wrapping large integer: ${number}`);
+        return `: "${number}"`;
+      }
+      return match;
+    });
+    
+    if (safedJson !== json) {
+      log(`[precision-fix] Modified JSON before parsing`);
+    }
+    
+    return JSON.parse(safedJson) as Record<string, unknown>;
+  } catch (err) {
+    log(`[precision-fix] Parse error: ${String(err)}`);
+    // Fall back to empty object on parse error
+    return {} as Record<string, unknown>;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Per-session state
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -306,13 +354,7 @@ export function buildAssistantMessageFromResponse(
         type: "toolCall",
         id: toNonEmptyString(item.call_id) ?? `call_${randomUUID()}`,
         name: toolName,
-        arguments: (() => {
-          try {
-            return JSON.parse(item.arguments) as Record<string, unknown>;
-          } catch {
-            return {} as Record<string, unknown>;
-          }
-        })(),
+        arguments: parseJsonPreservingLargeIntegers(item.arguments),
       });
     }
     // "reasoning" items are informational only; skip.
