@@ -78,21 +78,22 @@ function parseJsonPreservingLargeIntegers(json: string): Record<string, unknown>
     const safedJson = json.replace(largeIntegerRegex, (match, number) => {
       const numValue = Math.abs(parseFloat(number));
       if (numValue > MAX_SAFE_INTEGER) {
-        log(`[precision-fix] Wrapping large integer: ${number}`);
+        log.info(`[precision-fix] Wrapping large integer: ${number}`);
         return `: "${number}"`;
       }
       return match;
     });
     
     if (safedJson !== json) {
-      log(`[precision-fix] Modified JSON before parsing`);
+      log.info(`[precision-fix] Modified JSON before parsing`);
     }
     
     return JSON.parse(safedJson) as Record<string, unknown>;
   } catch (err) {
-    log(`[precision-fix] Parse error: ${String(err)}`);
-    // Fall back to empty object on parse error
-    return {} as Record<string, unknown>;
+    log.error(`[precision-fix] CRITICAL Parse error: ${String(err)}`);
+    log.error(`[precision-fix] JSON snippet: ${json.substring(0, 200)}`);
+    // Re-throw to let upstream error handlers deal with it
+    throw new Error(`Failed to parse JSON with large integer preservation: ${String(err)}`);
   }
 }
 
