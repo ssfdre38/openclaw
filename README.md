@@ -43,24 +43,104 @@ If you want a personal, single-user assistant that feels local, fast, and always
 
 ## Community Edition Enhancements
 
+This fork includes numerous stability fixes, performance improvements, and new features beyond the upstream OpenClaw project.
+
 ### 🔧 Large Integer Precision Fix
-**Branch:** `discord-fix`  
-**Status:** ✅ Implemented
+**Status:** ✅ Production-ready  
+**Commits:** `c358b067`, `031f2423`
 
 Fixes precision loss for Discord snowflake IDs and other 64-bit integers when passed through tool execution pipeline.
 
-**Files changed:**
-- `src/agents/openai-ws-stream.ts` - Added `parseJsonPreservingLargeIntegers()`
-- `PRECISION-LOSS-WORKAROUND.md` - Documentation for required node_modules patch
+**Technical details:**
+- Added `parseJsonPreservingLargeIntegers()` with regex-based pre-processing in `openai-ws-stream.ts`
+- Wraps 16+ digit integers in quotes BEFORE JSON.parse to prevent JavaScript precision loss
+- Pattern: `/:\s*(-?\d{16,})\b/g` detects integers exceeding Number.MAX_SAFE_INTEGER
+- Requires AJV coercion patch (see `PRECISION-LOSS-WORKAROUND.md`)
 
 **Impact:**
-- Discord MCP reply, reactions, editing, and threads now work correctly
-- Any tool using large integer IDs benefits
+- Discord MCP reply, reactions, editing, and threads work correctly with modern snowflake IDs
+- Any MCP tool using large integer IDs benefits (Twitter IDs, database bigints, etc.)
 
-### 📚 Documentation Improvements
+### 🧠 3-Tier Memory System
+**Status:** ✅ Implemented  
+**Commit:** `e2e6286a`
 
-- `PRECISION-LOSS-WORKAROUND.md` - Critical workaround for AJV type coercion
-- Enhanced inline documentation for custom changes
+Enhanced memory system with tiered storage architecture:
+- **Tier 1:** In-memory cache for instant access
+- **Tier 2:** JSON-based persistence for session continuity
+- **Tier 3:** Long-term storage with compression
+- Fixes browser tool selector warnings
+- Proper workspaceDir path handling in memory-core plugin
+
+### 🔌 MCP Server Support Improvements
+**Status:** ✅ Production-ready  
+**Commits:** `d36920db`, `38693aa2`, `203669643`
+
+Major MCP (Model Context Protocol) enhancements:
+- ✅ Full MCP server integration with STDIO transport
+- ✅ Fixed resource leaks - proper cleanup of event listeners and streams
+- ✅ TypeScript compilation errors resolved
+- ✅ Prevents gateway lockups and connection issues
+- ✅ Discord MCP emoji/sticker discovery tools foundation
+
+### 🌐 Browser Control Fixes
+**Status:** ✅ Stable  
+**Commits:** `6835922a`, `681adc45`, `ab433138`, `de3b4c0f`
+
+Critical browser automation improvements:
+- ✅ Fixed connection leaks preventing CloseWait states
+- ✅ Removed deprecated `--disable-blink-features=AutomationControlled` flag
+- ✅ Configurable `startTimeoutMs` for browser operations
+- ✅ Increased browser ref cache from 50 to 500 for better performance
+- ✅ Discord message chunking for large browser outputs
+- ✅ Improved browser relay stability
+
+### 🔒 Security Enhancements
+**Status:** ✅ Production-ready  
+**Commits:** `57c3ed01`, `4be005f1`
+
+Security improvements:
+- ✅ Strip partial API tokens from status labels (prevents token leakage)
+- ✅ systemAccess RBAC support in Discord config schema
+- ✅ Enhanced session lock management to prevent timeouts
+
+### ⚡ Performance Optimizations
+**Status:** ✅ Stable  
+**Commits:** `1246bc20`, `81955473`, `d4b912d3`
+
+Performance and resource management:
+- ✅ Worker thread pool for PDF processing (reduces main thread blocking)
+- ✅ Aggressive image memory cleanup after prompt processing
+- ✅ Phase 1 PDF-only worker pool (Phase 2 image workers rolled back for stability)
+- ✅ Plugin SDK bundling fix for proper plugin loading
+
+### 🎨 Discord Enhancements
+**Status:** ✅ Active development  
+**Commits:** `c6e9754b`, `bfcd5a1f`
+
+Discord-specific improvements:
+- ✅ Message chunking for large outputs (prevents message size limits)
+- ✅ Improved message relay stability
+- ✅ Emoji and sticker discovery tools
+- ✅ Large message ID precision preservation
+
+### 🖥️ Control UI Improvements
+**Status:** ✅ Production-ready  
+**Commits:** `47f00d4e`, `bcf2859c`, `65465dc0`, `1d376a82`, `93bd2315`
+
+Enhanced web UI for gateway control:
+- ✅ Auto-configure Control UI for Tailscale Serve mode
+- ✅ Session search functionality
+- ✅ Cron templates with validation
+- ✅ Export conversations feature
+- ✅ Keyboard shortcuts support
+- ✅ Enhanced error handling with suggestions
+- ✅ Loading skeletons for better UX
+
+### 📚 Documentation
+- `PRECISION-LOSS-WORKAROUND.md` - Critical AJV workaround documentation
+- Enhanced inline code documentation
+- Community Edition README with fork-specific guidance
 
 ## Installation (Community Edition)
 
