@@ -256,7 +256,11 @@ export function createGatewayTool(opts?: {
           // Update Discord presence if we have a gateway connection
           try {
             const gateway = getGateway();
-            if (gateway && gateway.isConnected) {
+            if (!gateway) {
+              log.warn(`Agent ${agentId} entering sleep state: Discord gateway not available`);
+            } else if (!gateway.isConnected) {
+              log.warn(`Agent ${agentId} entering sleep state: Discord gateway not connected`);
+            } else {
               const presenceData = {
                 since: null,
                 activities: activityState || activityName
@@ -283,10 +287,10 @@ export function createGatewayTool(opts?: {
                 afk: false,
               };
               gateway.updatePresence(presenceData);
-              log.info(`Agent ${agentId} entering sleep state with Discord status: ${status}`);
+              log.info(`Agent ${agentId} entering sleep state with Discord status: ${status}${activityState ? `, activity: ${activityState}` : ""}`);
             }
           } catch (error) {
-            log.warn(`Failed to update Discord presence for sleep: ${error}`);
+            log.error(`Failed to update Discord presence for sleep:`, error as Record<string, unknown>);
           }
 
           return jsonResult({
@@ -319,7 +323,11 @@ export function createGatewayTool(opts?: {
           // Update Discord presence if we have a gateway connection
           try {
             const gateway = getGateway();
-            if (gateway && gateway.isConnected) {
+            if (!gateway) {
+              log.warn(`Agent ${agentId} waking up: Discord gateway not available`);
+            } else if (!gateway.isConnected) {
+              log.warn(`Agent ${agentId} waking up: Discord gateway not connected`);
+            } else {
               const presenceData = {
                 since: null,
                 activities: activityState || activityName
@@ -346,10 +354,10 @@ export function createGatewayTool(opts?: {
                 afk: false,
               };
               gateway.updatePresence(presenceData);
-              log.info(`Agent ${agentId} waking up with Discord status: ${status}`);
+              log.info(`Agent ${agentId} waking up with Discord status: ${status}${activityState ? `, activity: ${activityState}` : ""}`);
             }
           } catch (error) {
-            log.warn(`Failed to update Discord presence for wake: ${error}`);
+            log.error(`Failed to update Discord presence for wake:`, error as Record<string, unknown>);
           }
 
           return jsonResult({
