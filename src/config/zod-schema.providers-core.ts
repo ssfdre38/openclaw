@@ -378,6 +378,36 @@ export const DiscordGuildChannelSchema = z
   })
   .strict();
 
+// System Access RBAC schemas
+const SystemAccessGrantSchema = z
+  .object({
+    level: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+    name: z.string().optional(),
+    grantedAt: z.string().optional(),
+    grantedBy: z.string().optional(),
+    expiresAt: z.string().optional(),
+    note: z.string().optional(),
+  })
+  .strict();
+
+const SystemAccessAuditConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    path: z.string().optional(),
+  })
+  .strict();
+
+const SystemAccessConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    defaultLevel: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional(),
+    owner: z.string().optional(),
+    users: z.record(z.string(), SystemAccessGrantSchema).optional(),
+    roles: z.record(z.string(), SystemAccessGrantSchema).optional(),
+    auditLog: SystemAccessAuditConfigSchema.optional(),
+  })
+  .strict();
+
 export const DiscordGuildSchema = z
   .object({
     slug: z.string().optional(),
@@ -387,6 +417,7 @@ export const DiscordGuildSchema = z
     reactionNotifications: z.enum(["off", "own", "all", "allowlist"]).optional(),
     users: DiscordIdListSchema.optional(),
     roles: DiscordIdListSchema.optional(),
+    systemAccess: SystemAccessConfigSchema.optional(),
     channels: z.record(z.string(), DiscordGuildChannelSchema.optional()).optional(),
   })
   .strict();
