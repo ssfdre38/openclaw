@@ -433,7 +433,9 @@ export function resolveCommandAuthorization(params: {
   const senderId = matchedSender ?? senderCandidates[0];
 
   const enforceOwner = Boolean(dock?.commands?.enforceOwnerForCommands);
-  const senderIsOwner = Boolean(matchedSender);
+  // Use SystemAccessIsOwner if available (from system access RBAC), fallback to allowlist matching
+  const systemAccessIsOwner = (ctx as { SystemAccessIsOwner?: boolean }).SystemAccessIsOwner ?? false;
+  const senderIsOwner = systemAccessIsOwner || Boolean(matchedSender);
   const ownerAllowlistConfigured = ownerAllowAll || explicitOwners.length > 0;
   const requireOwner = enforceOwner || ownerAllowlistConfigured;
   const isOwnerForCommands = !requireOwner

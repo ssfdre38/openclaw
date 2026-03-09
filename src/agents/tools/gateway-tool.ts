@@ -13,6 +13,9 @@ import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { stringEnum } from "../schema/typebox.js";
 import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool, readGatewayCallOptions } from "./gateway.js";
+import { loadAgentSleepState, saveAgentSleepState } from "../sleep-state.js";
+import { resolveAgentIdFromSessionKey } from "../agent-scope.js";
+import { getGateway } from "../../discord/monitor/gateway-registry.js";
 
 const log = createSubsystemLogger("gateway-tool");
 
@@ -38,6 +41,8 @@ const GATEWAY_ACTIONS = [
   "config.apply",
   "config.patch",
   "update.run",
+  "agent.sleep",
+  "agent.wake",
 ] as const;
 
 // NOTE: Using a flattened object schema instead of Type.Union([Type.Object(...), ...])
@@ -59,6 +64,12 @@ const GatewayToolSchema = Type.Object({
   sessionKey: Type.Optional(Type.String()),
   note: Type.Optional(Type.String()),
   restartDelayMs: Type.Optional(Type.Number()),
+  // agent.sleep, agent.wake
+  status: Type.Optional(Type.String()),
+  activityType: Type.Optional(Type.String()),
+  activityName: Type.Optional(Type.String()),
+  activityState: Type.Optional(Type.String()),
+  activityUrl: Type.Optional(Type.String()),
 });
 // NOTE: We intentionally avoid top-level `allOf`/`anyOf`/`oneOf` conditionals here:
 // - OpenAI rejects tool schemas that include these keywords at the *top-level*.
@@ -74,7 +85,12 @@ export function createGatewayTool(opts?: {
     name: "gateway",
     ownerOnly: true,
     description:
-      "Restart, apply config, or update the gateway in-place (SIGUSR1). Use config.patch for safe partial config updates (merges with existing). Use config.apply only when replacing entire config. Both trigger restart after writing. Always pass a human-readable completion message via the `note` parameter so the system can deliver it to the user after restart.",
+      "Restart, apply config, update the gateway, or manage agent sleep state. " +
+      "Use config.patch for safe partial config updates (merges with existing). " +
+      "Use config.apply only when replacing entire config. Both trigger restart after writing. " +
+      "Use agent.sleep to enter a resting state with custom Discord status. " +
+      "Use agent.wake to return to active state. " +
+      "Always pass a human-readable completion message via the `note` parameter for restart/config operations.",
     parameters: GatewayToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
@@ -214,6 +230,136 @@ export function createGatewayTool(opts?: {
           timeoutMs: updateTimeoutMs,
         });
         return jsonResult({ ok: true, result });
+      }
+
+      if (action === "agent.sleep" || action === "agent.wake") {
+        const sessionKey = opts?.agentSessionKey?.trim();
+        const agentId = sessionKey ? resolveAgentIdFromSessionKey(sessionKey) : "main";
+        
+        if (action === "agent.sleep") {
+          const reason = readStringParam(params, "reason");
+          const status = readStringParam(params, "status") || "dnd";
+          const activityType = readStringParam(params, "activityType");
+          const activityName = readStringParam(params, "activityName");
+          const activityState = readStringParam(params, "activityState");
+          const activityUrl = readStringParam(params, "activityUrl");
+
+          // Save sleep state
+          await saveAgentSleepState(agentId, {
+            sleeping: true,
+            reason,
+            sleepStartTime: Date.now(),
+            activityState,
+            status: status as "online" | "dnd" | "idle" | "invisible",
+          });
+
+          // Update Discord presence if we have a gateway connection
+          try {
+            const gateway = getGateway();
+            if (gateway && gateway.isConnected) {
+              const presenceData = {
+                since: null,
+                activities: activityState || activityName
+                  ? [
+                      {
+                        type: activityType === "playing"
+                          ? 0
+                          : activityType === "streaming"
+                            ? 1
+                            : activityType === "listening"
+                              ? 2
+                              : activityType === "watching"
+                                ? 3
+                                : activityType === "competing"
+                                  ? 5
+                                  : 4,
+                        name: activityName || "Custom Status",
+                        state: activityState,
+                        ...(activityUrl ? { url: activityUrl } : {}),
+                      },
+                    ]
+                  : [],
+                status: status as "online" | "dnd" | "idle" | "invisible",
+                afk: false,
+              };
+              gateway.updatePresence(presenceData);
+              log.info(`Agent ${agentId} entering sleep state with Discord status: ${status}`);
+            }
+          } catch (error) {
+            log.warn(`Failed to update Discord presence for sleep: ${error}`);
+          }
+
+          return jsonResult({
+            ok: true,
+            message: "Entering sleep state. Will return NO_REPLY to incoming messages until wake.",
+            agentId,
+            sleeping: true,
+            reason,
+          });
+        }
+
+        if (action === "agent.wake") {
+          const status = readStringParam(params, "status") || "online";
+          const activityType = readStringParam(params, "activityType");
+          const activityName = readStringParam(params, "activityName");
+          const activityState = readStringParam(params, "activityState");
+          const activityUrl = readStringParam(params, "activityUrl");
+
+          // Load current state to get sleep duration
+          const currentState = await loadAgentSleepState(agentId);
+          const sleepDurationMs = currentState.sleepStartTime
+            ? Date.now() - currentState.sleepStartTime
+            : 0;
+
+          // Clear sleep state
+          await saveAgentSleepState(agentId, {
+            sleeping: false,
+          });
+
+          // Update Discord presence if we have a gateway connection
+          try {
+            const gateway = getGateway();
+            if (gateway && gateway.isConnected) {
+              const presenceData = {
+                since: null,
+                activities: activityState || activityName
+                  ? [
+                      {
+                        type: activityType === "playing"
+                          ? 0
+                          : activityType === "streaming"
+                            ? 1
+                            : activityType === "listening"
+                              ? 2
+                              : activityType === "watching"
+                                ? 3
+                                : activityType === "competing"
+                                  ? 5
+                                  : 4,
+                        name: activityName || "Custom Status",
+                        state: activityState,
+                        ...(activityUrl ? { url: activityUrl } : {}),
+                      },
+                    ]
+                  : [],
+                status: status as "online" | "dnd" | "idle" | "invisible",
+                afk: false,
+              };
+              gateway.updatePresence(presenceData);
+              log.info(`Agent ${agentId} waking up with Discord status: ${status}`);
+            }
+          } catch (error) {
+            log.warn(`Failed to update Discord presence for wake: ${error}`);
+          }
+
+          return jsonResult({
+            ok: true,
+            message: "Waking up. Will now respond to incoming messages.",
+            agentId,
+            sleeping: false,
+            sleepDurationMs,
+          });
+        }
       }
 
       throw new Error(`Unknown action: ${action}`);

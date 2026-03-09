@@ -49,6 +49,9 @@ import { buildDirectLabel, buildGuildLabel, resolveReplyContext } from "./reply-
 import { deliverDiscordReply } from "./reply-delivery.js";
 import { resolveDiscordAutoThreadReplyPlan, resolveDiscordThreadStarter } from "./threading.js";
 import { sendTyping } from "./typing.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+
+const log = createSubsystemLogger("discord-message-handler");
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -113,6 +116,17 @@ export async function processDiscordMessage(ctx: DiscordMessagePreflightContext)
   const text = messageText;
   if (!text) {
     logVerbose("discord: drop message " + message.id + " (empty content)");
+    return;
+  }
+
+  // Check if agent is sleeping
+  const { loadAgentSleepState } = await import("../../agents/sleep-state.js");
+  const sleepState = await loadAgentSleepState(route.agentId);
+  if (sleepState.sleeping) {
+    log.info(
+      `Agent ${route.agentId} is sleeping, returning NO_REPLY for message ${message.id}${sleepState.reason ? ` (reason: ${sleepState.reason})` : ""}`,
+    );
+    // Silently return without processing
     return;
   }
 
