@@ -580,4 +580,48 @@ export function registerModelsCli(program: Command) {
         await modelsAuthConfigBalancingCommand();
       });
     });
+
+  // --- Complexity Routing Commands ---
+  const routing = models.command("routing").description("Complexity-based model routing");
+
+  routing
+    .command("configure")
+    .description("Configure complexity-based routing (interactive wizard)")
+    .option("--enable", "Enable routing with defaults", false)
+    .option("--disable", "Disable routing", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        const { modelsRoutingConfigureCommand } = await import("../commands/models/routing-configure.js");
+        await modelsRoutingConfigureCommand(defaultRuntime, {
+          enable: Boolean(opts.enable),
+          disable: Boolean(opts.disable),
+        });
+      });
+    });
+
+  routing
+    .command("status")
+    .description("Show current complexity routing configuration")
+    .action(async () => {
+      await runModelsCommand(async () => {
+        const { modelsRoutingStatusCommand } = await import("../commands/models/routing-status.js");
+        await modelsRoutingStatusCommand(defaultRuntime);
+      });
+    });
+
+  routing
+    .command("classify")
+    .description("Test task complexity classification")
+    .argument("<prompt>", "Prompt to classify")
+    .option("--json", "Output JSON", false)
+    .option("--verbose", "Show detailed score breakdown", false)
+    .action(async (prompt: string, opts) => {
+      await runModelsCommand(async () => {
+        const { modelsRoutingClassifyCommand } = await import("../commands/models/routing-classify.js");
+        await modelsRoutingClassifyCommand(defaultRuntime, prompt, {
+          json: Boolean(opts.json),
+          verbose: Boolean(opts.verbose),
+        });
+      });
+    });
 }

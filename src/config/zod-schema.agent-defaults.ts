@@ -13,6 +13,7 @@ import {
   HumanDelaySchema,
   TypingModeSchema,
 } from "./zod-schema.core.js";
+import { ComplexityRoutingConfigSchema } from "./zod-schema.complexity-routing.js";
 
 export const AgentDefaultsSchema = z
   .object({
@@ -210,6 +211,7 @@ export const AgentDefaultsSchema = z
       .strict()
       .optional(),
     sandbox: AgentSandboxSchema,
+    complexityRouting: ComplexityRoutingConfigSchema.optional(),
   })
   .strict()
   .optional();
