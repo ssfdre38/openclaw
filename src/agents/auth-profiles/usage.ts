@@ -2,6 +2,7 @@ import type { OpenClawConfig } from "../../config/config.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { saveAuthProfileStore, updateAuthProfileStoreWithLock } from "./store.js";
 import type { AuthProfileFailureReason, AuthProfileStore, ProfileUsageStats } from "./types.js";
+import { parseRateLimitHeaders, type RateLimitInfo } from "./rate-limit-parser.js";
 
 const FAILURE_REASON_PRIORITY: AuthProfileFailureReason[] = [
   "auth_permanent",

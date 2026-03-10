@@ -11,6 +11,7 @@ import {
   isProfileInCooldown,
   resolveProfileUnusableUntil,
 } from "./usage.js";
+import { isLoadBalancingEnabled, selectProfilesWithLoadBalancing } from "./load-balancer.js";
 
 export function resolveAuthProfileOrder(params: {
   cfg?: OpenClawConfig;
@@ -96,6 +97,27 @@ export function resolveAuthProfileOrder(params: {
   }
 
   const deduped = dedupeProfileIds(filtered);
+
+  // NEW: Use load balancing if enabled
+  if (cfg && isLoadBalancingEnabled(cfg)) {
+    const fallbackToRoundRobin = cfg.auth?.loadBalancing?.fallbackToRoundRobin !== false;
+    try {
+      const ordered = selectProfilesWithLoadBalancing(deduped, cfg, store);
+      if (ordered.length > 0) {
+        return ordered;
+      }
+      // Fall through to existing logic if load balancing returns empty
+      if (!fallbackToRoundRobin) {
+        return []; // Respect "no fallback" setting
+      }
+    } catch (error) {
+      // Log error and fall through to existing round-robin logic
+      console.error("[load-balancer] Error in profile selection, falling back to round-robin:", error);
+      if (!fallbackToRoundRobin) {
+        throw error; // Re-throw if fallback disabled
+      }
+    }
+  }
 
   // If user specified explicit order (store override or config), respect it
   // exactly, but still apply cooldown sorting to avoid repeatedly selecting

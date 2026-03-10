@@ -55,6 +55,21 @@ export type ProfileUsageStats = {
   errorCount?: number;
   failureCounts?: Partial<Record<AuthProfileFailureReason, number>>;
   lastFailureAt?: number;
+
+  // Load balancing: quota tracking
+  quotaUsedToday?: number; // API calls made today
+  quotaLimitDaily?: number; // Max daily API calls (from config)
+  tokenInputUsedToday?: number; // Input tokens used today
+  tokenOutputUsedToday?: number; // Output tokens used today
+  tokenLimitDaily?: number; // Max daily tokens (from config)
+  costToday?: number; // Cost in dollars (calculated)
+  lastQuotaResetDate?: string; // Date of last daily quota reset (YYYY-MM-DD)
+
+  // Load balancing: rate limit tracking (from API response headers)
+  rateLimitRemaining?: number; // Remaining requests from API headers
+  rateLimitReset?: number; // When limit resets (timestamp ms)
+  rpm?: number; // Requests per minute (from headers)
+  tpm?: number; // Tokens per minute (from headers)
 };
 
 export type AuthProfileStore = {

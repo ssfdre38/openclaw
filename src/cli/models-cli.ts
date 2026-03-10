@@ -440,4 +440,82 @@ export function registerModelsCli(program: Command) {
         );
       });
     });
+
+  // Load balancing management commands
+  auth
+    .command("list")
+    .description("List all auth profiles with status and quota info")
+    .option("--provider <name>", "Filter by provider id")
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthListCommand } = await import("../commands/models/auth-list.js");
+        await modelsAuthListCommand({
+          provider: opts.provider as string | undefined,
+          json: Boolean(opts.json),
+        });
+      });
+    });
+
+  auth
+    .command("show")
+    .description("Show detailed information for a specific auth profile")
+    .argument("<profileId>", "Profile id (e.g. anthropic:main)")
+    .action(async (profileId: string) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthShowCommand } = await import("../commands/models/auth-show.js");
+        await modelsAuthShowCommand({ profileId });
+      });
+    });
+
+  auth
+    .command("configure")
+    .description("Configure load balancing settings for an auth profile")
+    .argument("<profileId>", "Profile id (e.g. anthropic:main)")
+    .option("--weight <n>", "Weight 0-100 (for weighted distribution)")
+    .option("--priority <n>", "Priority 1-10 (higher = prefer first)")
+    .option("--daily-limit <n>", "Daily API call limit")
+    .option("--token-limit <n>", "Daily token limit (input + output)")
+    .option("--enabled <bool>", "Enable/disable profile")
+    .option("--interactive", "Interactive configuration mode", false)
+    .action(async (profileId: string, opts) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthConfigureCommand } = await import("../commands/models/auth-configure.js");
+        await modelsAuthConfigureCommand({
+          profileId,
+          weight: opts.weight ? parseInt(opts.weight, 10) : undefined,
+          priority: opts.priority ? parseInt(opts.priority, 10) : undefined,
+          dailyLimit: opts.dailyLimit ? parseInt(opts.dailyLimit, 10) : undefined,
+          tokenLimit: opts.tokenLimit ? parseInt(opts.tokenLimit, 10) : undefined,
+          enabled: opts.enabled !== undefined ? opts.enabled === "true" : undefined,
+          interactive: Boolean(opts.interactive),
+        });
+      });
+    });
+
+  auth
+    .command("quota")
+    .description("Display quota usage for auth profiles")
+    .option("--profile-id <id>", "Show quota for specific profile only")
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthQuotaCommand } = await import("../commands/models/auth-quota.js");
+        await modelsAuthQuotaCommand({
+          profileId: opts.profileId as string | undefined,
+          json: Boolean(opts.json),
+        });
+      });
+    });
+
+  auth
+    .command("test")
+    .description("Test an auth profile by validating credentials")
+    .argument("<profileId>", "Profile id to test (e.g. anthropic:main)")
+    .action(async (profileId: string) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthTestCommand } = await import("../commands/models/auth-test.js");
+        await modelsAuthTestCommand({ profileId });
+      });
+    });
 }
