@@ -156,7 +156,7 @@ class RoutingMetricsStore {
       await fs.writeFile(filepath, JSON.stringify(this.entries, null, 2), "utf-8");
       log.info(`Exported ${this.entries.length} metrics to ${filepath}`);
     } catch (error) {
-      log.error("Failed to export metrics:", error);
+      log.error("Failed to export metrics:", { error });
       throw error;
     }
   }
@@ -171,7 +171,7 @@ class RoutingMetricsStore {
       this.entries = imported.slice(-this.maxEntries); // Keep only last N
       log.info(`Imported ${this.entries.length} metrics from ${filepath}`);
     } catch (error) {
-      log.error("Failed to import metrics:", error);
+      log.error("Failed to import metrics:", { error });
       throw error;
     }
   }

@@ -159,7 +159,7 @@ export function classifyTaskComplexity(
       complexity: context.forceComplexity,
       confidence: 100,
       score: context.forceComplexity === "complex" ? 100 : context.forceComplexity === "simple" ? 0 : 50,
-      factors: {
+      breakdown: {
         keywordScore: 0,
         lengthScore: 0,
         contextScore: 0,
@@ -260,7 +260,7 @@ export function classifyTaskComplexity(
     complexity,
     confidence,
     score: totalScore,
-    factors: {
+    breakdown: {
       keywordScore,
       lengthScore,
       contextScore,

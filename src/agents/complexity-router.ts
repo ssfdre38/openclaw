@@ -27,8 +27,9 @@ const log = createSubsystemLogger("complexity-router");
  * Check if complexity routing is enabled in config.
  */
 export function isComplexityRoutingEnabled(config: OpenClawConfig, agentId?: string): boolean {
-  const agentConfig = agentId ? config.agents?.[agentId] : config.agents?.main;
-  return agentConfig?.complexityRouting?.enabled === true;
+  // Check agent defaults for routing config
+  const agentDefaults = config.agents?.defaults;
+  return agentDefaults?.complexityRouting?.enabled === true;
 }
 
 /**
@@ -38,8 +39,9 @@ export function getComplexityRoutingConfig(
   config: OpenClawConfig,
   agentId: string = "main",
 ): ComplexityRoutingConfig | undefined {
-  const agentConfig = config.agents?.[agentId];
-  return agentConfig?.complexityRouting;
+  // Get from agent defaults
+  const agentDefaults = config.agents?.defaults;
+  return agentDefaults?.complexityRouting;
 }
 
 /**
@@ -128,7 +130,7 @@ export function selectModelByComplexity(
 
     return decision;
   } catch (error) {
-    log.error("Error in complexity routing:", error);
+    log.error("Error in complexity routing:", { error });
     return null;
   }
 }

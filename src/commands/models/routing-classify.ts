@@ -84,10 +84,10 @@ export async function modelsRoutingClassifyCommand(
     console.log(chalk.bold("\n📊 Score Breakdown:\n"));
 
     const factors = [
-      { name: "Keywords", value: result.factors.keywordScore, max: 30 },
-      { name: "Length", value: result.factors.lengthScore, max: 25 },
-      { name: "Context", value: result.factors.contextScore, max: 25 },
-      { name: "Tools", value: result.factors.toolScore, max: 20 },
+      { name: "Keywords", value: result.breakdown.keywordScore, max: 30 },
+      { name: "Length", value: result.breakdown.lengthScore, max: 25 },
+      { name: "Context", value: result.breakdown.contextScore, max: 25 },
+      { name: "Tools", value: result.breakdown.toolScore, max: 20 },
     ];
 
     for (const factor of factors) {

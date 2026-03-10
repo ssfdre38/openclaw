@@ -41,6 +41,7 @@ import { isTimeoutError } from "../../failover-error.js";
 import { resolveImageSanitizationLimits } from "../../image-sanitization.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { normalizeProviderId, resolveDefaultModelForAgent } from "../../model-selection.js";
+import { resolveModelWithRouting, buildModelSelectionContext } from "../../model-routing-integration.js";
 import { createOllamaStreamFn, OLLAMA_NATIVE_BASE_URL } from "../../ollama-stream.js";
 import { createOpenAIWebSocketStreamFn, releaseWsSession } from "../../openai-ws-stream.js";
 import { resolveOwnerDisplaySetting } from "../../owner-display.js";
@@ -735,10 +736,35 @@ export async function runEmbeddedAttempt(
         })
       : undefined;
 
-    const defaultModelRef = resolveDefaultModelForAgent({
-      cfg: params.config ?? {},
+    // Attempt complexity-based routing first
+    const routingContext = buildModelSelectionContext({
       agentId: sessionAgentId,
+      prompt: params.prompt,
+      conversationHistory: undefined, // History not available at this point
+      fileContext: (contextFiles?.length ?? 0) > 0,
     });
+
+    const routedModelRefString = resolveModelWithRouting(
+      params.config ?? {},
+      routingContext,
+    );
+
+    // Use routed model if available, otherwise fall back to default
+    const defaultModelRef = routedModelRefString
+      ? (() => {
+          // Parse routed model string back to { provider, model }
+          const parts = routedModelRefString.split("/");
+          return parts.length === 2
+            ? { provider: parts[0], model: parts[1] }
+            : resolveDefaultModelForAgent({
+                cfg: params.config ?? {},
+                agentId: sessionAgentId,
+              });
+        })()
+      : resolveDefaultModelForAgent({
+          cfg: params.config ?? {},
+          agentId: sessionAgentId,
+        });
     const defaultModelLabel = `${defaultModelRef.provider}/${defaultModelRef.model}`;
     const { runtimeInfo, userTimezone, userTime, userTimeFormat } = buildSystemPromptParams({
       config: params.config,
