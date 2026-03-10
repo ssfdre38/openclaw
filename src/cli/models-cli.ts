@@ -624,4 +624,21 @@ export function registerModelsCli(program: Command) {
         });
       });
     });
+
+  routing
+    .command("stats")
+    .description("Show routing metrics and cost savings")
+    .option("--hours <n>", "Show stats for last N hours", (val) => parseInt(val, 10))
+    .option("--recent <n>", "Show N most recent decisions", (val) => parseInt(val, 10))
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        const { modelsRoutingStatsCommand } = await import("../commands/models/routing-stats.js");
+        await modelsRoutingStatsCommand(defaultRuntime, {
+          hours: opts.hours as number | undefined,
+          recent: opts.recent as number | undefined,
+          json: Boolean(opts.json),
+        });
+      });
+    });
 }
