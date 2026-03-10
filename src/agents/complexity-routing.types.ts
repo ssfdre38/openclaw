@@ -38,6 +38,8 @@ export type ClassificationThresholds = {
   simpleLengthMax?: number;
   /** Max prompt length for "moderate" classification */
   moderateLengthMax?: number;
+  /** Max score for "simple" classification (0-100) */
+  simpleScoreMax?: number;
   /** Min score for "complex" classification (0-100) */
   complexScoreMin?: number;
 };

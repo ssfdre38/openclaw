@@ -19,7 +19,8 @@ import type {
 export const DEFAULT_THRESHOLDS: Required<ClassificationThresholds> = {
   simpleLengthMax: 500,
   moderateLengthMax: 2000,
-  complexScoreMin: 60,
+  simpleScoreMax: 30, // Score below 30 = simple
+  complexScoreMin: 60, // Score 60+ = complex
 };
 
 /**
@@ -158,7 +159,7 @@ export function classifyTaskComplexity(
       complexity: context.forceComplexity,
       confidence: 100,
       score: context.forceComplexity === "complex" ? 100 : context.forceComplexity === "simple" ? 0 : 50,
-      breakdown: {
+      factors: {
         keywordScore: 0,
         lengthScore: 0,
         contextScore: 0,
@@ -241,17 +242,17 @@ export function classifyTaskComplexity(
   let confidence: number;
   let reason: string;
 
-  if (totalScore < 30) {
+  if (totalScore < finalThresholds.simpleScoreMax) {
     complexity = "simple";
-    confidence = Math.min(100, (30 - totalScore) * 3.33);
+    confidence = Math.min(100, (finalThresholds.simpleScoreMax - totalScore) * 3.33) / 100;
     reason = "Low score indicates simple task (chat, questions, definitions)";
   } else if (totalScore < finalThresholds.complexScoreMin) {
     complexity = "moderate";
-    confidence = 70; // Moderate is less certain
+    confidence = 0.7; // Moderate is less certain
     reason = "Medium score indicates moderate complexity (analysis, documentation)";
   } else {
     complexity = "complex";
-    confidence = Math.min(100, (totalScore - 60) * 2.5);
+    confidence = Math.min(100, (totalScore - finalThresholds.complexScoreMin) * 2.5) / 100;
     reason = "High score indicates complex task (coding, debugging, architecture)";
   }
 
@@ -259,7 +260,7 @@ export function classifyTaskComplexity(
     complexity,
     confidence,
     score: totalScore,
-    breakdown: {
+    factors: {
       keywordScore,
       lengthScore,
       contextScore,
