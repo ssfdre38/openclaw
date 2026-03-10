@@ -29,6 +29,13 @@ export function resolveModelWithRouting(
   cfg: OpenClawConfig,
   context: ModelSelectionContext,
 ): string | undefined {
+  // Debug: Log that routing was called
+  console.log("[ROUTING-DEBUG] resolveModelWithRouting called", {
+    agentId: context.agentId,
+    promptLength: context.prompt.length,
+    enabled: cfg.agents?.defaults?.complexityRouting?.enabled,
+  });
+  
   // Try complexity routing first
   const routingDecision = selectModelWithComplexityRouting(cfg, context.prompt, {
     agentId: context.agentId,
@@ -39,6 +46,7 @@ export function resolveModelWithRouting(
 
   if (routingDecision) {
     const modelRef = `${routingDecision.provider}/${routingDecision.model}`;
+    console.log("[ROUTING-DEBUG] Routing selected model:", modelRef, "complexity:", routingDecision.complexity);
     log.debug("Routing selected model:", {
       model: modelRef,
       complexity: routingDecision.complexity,
@@ -53,6 +61,7 @@ export function resolveModelWithRouting(
   }
 
   // Fall back to standard model resolution
+  console.log("[ROUTING-DEBUG] Routing returned null, falling back to standard model");
   const standardModel = resolveAgentEffectiveModelPrimary(cfg, context.agentId);
   if (standardModel) {
     log.debug("Using standard model resolution:", { model: standardModel });

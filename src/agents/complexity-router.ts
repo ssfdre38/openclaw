@@ -67,17 +67,28 @@ export function selectModelByComplexity(
     }
 
     // Get model for complexity level
-    const modelId = routingConfig.models?.[classification.complexity];
-    if (!modelId) {
+    const modelConfig = routingConfig.models?.[classification.complexity];
+    if (!modelConfig) {
       log.warn(`No model configured for complexity: ${classification.complexity}`);
       return null;
     }
 
-    // Parse model ref (provider:model or just model)
-    const { provider, model } = parseModelRef(modelId);
+    // Handle both string and object formats
+    let modelId: string;
+    let fallbacks: string[];
+    
+    if (typeof modelConfig === "string") {
+      // Simple string format: "provider/model"
+      modelId = modelConfig;
+      fallbacks = routingConfig.fallbacks?.[classification.complexity] ?? [];
+    } else {
+      // Object format: {primary: "...", fallbacks: [...]}
+      modelId = modelConfig.primary;
+      fallbacks = modelConfig.fallbacks ?? [];
+    }
 
-    // Get fallbacks
-    const fallbacks = routingConfig.fallbacks?.[classification.complexity] ?? [];
+    // Parse model ref (provider:model or provider/model)
+    const { provider, model } = parseModelRef(modelId);
 
     // Cost control check
     let costControlApplied = false;
@@ -130,15 +141,19 @@ export function selectModelByComplexity(
 
     return decision;
   } catch (error) {
-    log.error("Error in complexity routing:", { error });
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("[ROUTING-ERROR]", errorMsg, errorStack);
+    log.error("Error in complexity routing:", { error: errorMsg, stack: errorStack });
     return null;
   }
 }
 
 /**
- * Parse model reference (provider:model or just model).
+ * Parse model reference (provider:model or provider/model).
  */
 function parseModelRef(modelRef: string): { provider: string; model: string } {
+  // Try colon separator first (ollama:llama3)
   const colonIndex = modelRef.indexOf(":");
   if (colonIndex > 0) {
     const provider = modelRef.substring(0, colonIndex);
@@ -146,7 +161,15 @@ function parseModelRef(modelRef: string): { provider: string; model: string } {
     return { provider: normalizeProviderId(provider), model };
   }
 
-  // No provider specified, try to infer
+  // Try slash separator (github-copilot/claude-sonnet-4.5)
+  const slashIndex = modelRef.indexOf("/");
+  if (slashIndex > 0) {
+    const provider = modelRef.substring(0, slashIndex);
+    const model = modelRef.substring(slashIndex + 1);
+    return { provider: normalizeProviderId(provider), model };
+  }
+
+  // No provider specified, try to infer from model name
   if (modelRef.startsWith("claude-")) {
     return { provider: "anthropic", model: modelRef };
   }
@@ -165,13 +188,29 @@ function parseModelRef(modelRef: string): { provider: string; model: string } {
  * Find a local/free model in routing config.
  */
 function findLocalModel(routingConfig: ComplexityRoutingConfig): string | undefined {
+  // Helper to extract model string from config
+  const getModelString = (config: string | { primary: string; fallbacks?: string[] } | undefined): string | undefined => {
+    if (!config) return undefined;
+    return typeof config === "string" ? config : config.primary;
+  };
+
   // Check simple model first
-  const simpleModel = routingConfig.models?.simple;
+  const simpleModel = getModelString(routingConfig.models?.simple);
   if (simpleModel && (simpleModel.includes("ollama:") || !simpleModel.includes(":"))) {
     return simpleModel;
   }
 
-  // Check fallbacks
+  // Check fallbacks from simple model object
+  const simpleConfig = routingConfig.models?.simple;
+  if (simpleConfig && typeof simpleConfig === "object") {
+    for (const fallback of simpleConfig.fallbacks ?? []) {
+      if (fallback.includes("ollama:") || !fallback.includes(":")) {
+        return fallback;
+      }
+    }
+  }
+
+  // Check legacy fallbacks array
   const simpleFallbacks = routingConfig.fallbacks?.simple ?? [];
   for (const fallback of simpleFallbacks) {
     if (fallback.includes("ollama:") || !fallback.includes(":")) {

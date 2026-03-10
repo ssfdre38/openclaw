@@ -56,12 +56,12 @@ export type ComplexityRoutingConfig = {
 
   /** Model assignments by complexity level */
   models?: {
-    simple?: string;
-    moderate?: string;
-    complex?: string;
+    simple?: string | { primary: string; fallbacks?: string[] };
+    moderate?: string | { primary: string; fallbacks?: string[] };
+    complex?: string | { primary: string; fallbacks?: string[] };
   };
 
-  /** Fallback models if primary fails */
+  /** Fallback models if primary fails (legacy format, use object format in models instead) */
   fallbacks?: {
     simple?: string[];
     moderate?: string[];
