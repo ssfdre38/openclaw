@@ -518,4 +518,66 @@ export function registerModelsCli(program: Command) {
         await modelsAuthTestCommand({ profileId });
       });
     });
+
+  auth
+    .command("remove")
+    .description("Remove an auth profile (credentials and config)")
+    .argument("<profileId>", "Profile id to remove (e.g. anthropic:old)")
+    .option("--yes", "Skip confirmation prompt", false)
+    .action(async (profileId: string, opts) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthRemoveCommand } = await import("../commands/models/auth-remove.js");
+        await modelsAuthRemoveCommand({
+          profileId,
+          yes: Boolean(opts.yes),
+        });
+      });
+    });
+
+  auth
+    .command("enable")
+    .description("Enable an auth profile")
+    .argument("<profileId>", "Profile id to enable")
+    .action(async (profileId: string) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthEnableCommand } = await import("../commands/models/auth-enable-disable.js");
+        await modelsAuthEnableCommand({ profileId });
+      });
+    });
+
+  auth
+    .command("disable")
+    .description("Disable an auth profile")
+    .argument("<profileId>", "Profile id to disable")
+    .action(async (profileId: string) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthDisableCommand } = await import("../commands/models/auth-enable-disable.js");
+        await modelsAuthDisableCommand({ profileId });
+      });
+    });
+
+  auth
+    .command("rate-limits")
+    .description("Display rate limit information from API headers")
+    .option("--provider <name>", "Filter by provider")
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => {
+      await runModelsCommand(async () => {
+        const { modelsAuthRateLimitsCommand } = await import("../commands/models/auth-rate-limits.js");
+        await modelsAuthRateLimitsCommand({
+          provider: opts.provider as string | undefined,
+          json: Boolean(opts.json),
+        });
+      });
+    });
+
+  auth
+    .command("config-balancing")
+    .description("Interactive wizard for configuring load balancing")
+    .action(async () => {
+      await runModelsCommand(async () => {
+        const { modelsAuthConfigBalancingCommand } = await import("../commands/models/auth-config-balancing.js");
+        await modelsAuthConfigBalancingCommand();
+      });
+    });
 }
