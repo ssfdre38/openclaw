@@ -7,6 +7,28 @@ const log = createSubsystemLogger("model-catalog");
 
 export type ModelInputType = "text" | "image" | "document";
 
+/**
+ * Performance tier for model selection and routing.
+ */
+export type ModelPerformanceTier = "fast" | "balanced" | "quality";
+
+/**
+ * Provider type for cost optimization.
+ */
+export type ModelProviderType = "local" | "cloud" | "hybrid";
+
+/**
+ * Cost metadata for a model.
+ */
+export type ModelCostMetadata = {
+  /** Cost per 1000 input tokens in USD */
+  inputCostPer1k?: number;
+  /** Cost per 1000 output tokens in USD */
+  outputCostPer1k?: number;
+  /** Estimated cost per request (for models without token-based pricing) */
+  estimatedCostPerRequest?: number;
+};
+
 export type ModelCatalogEntry = {
   id: string;
   name: string;
@@ -14,6 +36,18 @@ export type ModelCatalogEntry = {
   contextWindow?: number;
   reasoning?: boolean;
   input?: ModelInputType[];
+  
+  // Task complexity routing metadata
+  /** Performance tier: fast (Haiku-like), balanced (mid-tier), quality (Sonnet-like) */
+  performanceTier?: ModelPerformanceTier;
+  /** Provider type: local (Ollama), cloud (API), hybrid (multi-region) */
+  providerType?: ModelProviderType;
+  /** Cost metadata for routing decisions */
+  cost?: ModelCostMetadata;
+  /** Relative speed score (0-100, higher = faster) */
+  speedScore?: number;
+  /** Relative quality score (0-100, higher = better) */
+  qualityScore?: number;
 };
 
 type DiscoveredModel = {
