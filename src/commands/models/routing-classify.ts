@@ -64,12 +64,12 @@ export async function modelsRoutingClassifyCommand(
 
   // Confidence
   if (result.confidence !== undefined) {
-    const confidencePercent = (result.confidence * 100).toFixed(0);
-    const confidenceBarLength = Math.min(Math.round(result.confidence * 10), 10);
+    const confidencePercent = result.confidence.toFixed(0); // Already 0-100
+    const confidenceBarLength = Math.min(Math.round(result.confidence / 10), 10);
     const confidenceBar =
-      result.confidence >= 0.8
+      result.confidence >= 80
         ? chalk.green("▓".repeat(confidenceBarLength))
-        : result.confidence >= 0.5
+        : result.confidence >= 50
           ? chalk.yellow("▓".repeat(confidenceBarLength))
           : chalk.red("▓".repeat(confidenceBarLength));
     console.log(

@@ -17,8 +17,8 @@ import type {
  * Default classification thresholds.
  */
 export const DEFAULT_THRESHOLDS: Required<ClassificationThresholds> = {
-  simpleLengthMax: 500,
-  moderateLengthMax: 2000,
+  simpleLengthMax: 200, // Very short prompts (< 200 chars)
+  moderateLengthMax: 1000, // Medium prompts (200-1000 chars)
   simpleScoreMax: 30, // Score below 30 = simple
   complexScoreMin: 60, // Score 60+ = complex
 };
@@ -46,16 +46,9 @@ const SIMPLE_KEYWORDS = [
   "tell me",
   "show me",
 
-  // Chat
-  "hello",
-  "hi",
-  "hey",
+  // Gratitude/affirmation (specific greetings removed as they appear in code examples)
   "thanks",
   "thank you",
-  "yes",
-  "no",
-  "ok",
-  "okay",
 
   // Simple queries
   "list",
@@ -77,7 +70,6 @@ const MODERATE_KEYWORDS = [
 
   // Documentation
   "document",
-  "write",
   "draft",
   "compose",
 
@@ -171,25 +163,27 @@ export function classifyTaskComplexity(
 
   const prompt = context.prompt.toLowerCase();
 
-  // 1. KEYWORD ANALYSIS (0-30 points)
-  let keywordScore = 15; // Start at midpoint
+  // 1. KEYWORD ANALYSIS (0-50 points) - increased max for better discrimination
+  let keywordScore = 5; // Start very low
 
-  // Simple keywords reduce score
+  // Simple keywords reduce score significantly
   const hasSimpleKeyword = SIMPLE_KEYWORDS.some((kw) => prompt.includes(kw));
   if (hasSimpleKeyword) {
-    keywordScore -= 10;
+    keywordScore = 0; // Simple keywords override everything
   }
 
-  // Moderate keywords don't change much
-  const hasModerateKeyword = MODERATE_KEYWORDS.some((kw) => prompt.includes(kw));
-  if (hasModerateKeyword) {
-    keywordScore += 0;
-  }
+  // Count complex keywords for better scoring
+  const complexKeywordCount = COMPLEX_KEYWORDS.filter((kw) => prompt.includes(kw)).length;
+  const moderateKeywordCount = MODERATE_KEYWORDS.filter((kw) => prompt.includes(kw)).length;
 
-  // Complex keywords increase score
-  const hasComplexKeyword = COMPLEX_KEYWORDS.some((kw) => prompt.includes(kw));
-  if (hasComplexKeyword) {
-    keywordScore += 20;
+  if (!hasSimpleKeyword) {
+    if (complexKeywordCount > 0) {
+      // Complex keywords: 20 points base + 10 per additional
+      keywordScore = 20 + Math.min(30, (complexKeywordCount - 1) * 10);
+    } else if (moderateKeywordCount > 0) {
+      // Moderate keywords: 10 points base + 5 per additional
+      keywordScore = 10 + Math.min(10, (moderateKeywordCount - 1) * 5);
+    }
   }
 
   // 2. LENGTH ANALYSIS (0-25 points)
@@ -244,15 +238,19 @@ export function classifyTaskComplexity(
 
   if (totalScore < finalThresholds.simpleScoreMax) {
     complexity = "simple";
-    confidence = Math.min(100, (finalThresholds.simpleScoreMax - totalScore) * 3.33) / 100;
+    // Confidence increases as score decreases from threshold
+    const distance = finalThresholds.simpleScoreMax - totalScore;
+    confidence = Math.min(100, Math.max(50, distance * 3)); // 50-100% confidence
     reason = "Low score indicates simple task (chat, questions, definitions)";
   } else if (totalScore < finalThresholds.complexScoreMin) {
     complexity = "moderate";
-    confidence = 0.7; // Moderate is less certain
+    confidence = 70; // Moderate is less certain (middle ground)
     reason = "Medium score indicates moderate complexity (analysis, documentation)";
   } else {
     complexity = "complex";
-    confidence = Math.min(100, (totalScore - finalThresholds.complexScoreMin) * 2.5) / 100;
+    // Confidence increases with score above threshold
+    const distance = totalScore - finalThresholds.complexScoreMin;
+    confidence = Math.min(100, Math.max(70, 70 + distance)); // 70-100% confidence
     reason = "High score indicates complex task (coding, debugging, architecture)";
   }
 
