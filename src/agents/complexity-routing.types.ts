@@ -129,7 +129,6 @@ export type ClassificationResult = {
   /** Breakdown of scoring */
   breakdown: {
     keywordScore: number;
-    lengthScore: number;
     contextScore: number;
     toolScore: number;
   };

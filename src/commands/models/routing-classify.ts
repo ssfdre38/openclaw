@@ -84,9 +84,8 @@ export async function modelsRoutingClassifyCommand(
     console.log(chalk.bold("\n📊 Score Breakdown:\n"));
 
     const factors = [
-      { name: "Keywords", value: result.breakdown.keywordScore, max: 30 },
-      { name: "Length", value: result.breakdown.lengthScore, max: 25 },
-      { name: "Context", value: result.breakdown.contextScore, max: 25 },
+      { name: "Keywords", value: result.breakdown.keywordScore, max: 50 },
+      { name: "Context", value: result.breakdown.contextScore, max: 20 },
       { name: "Tools", value: result.breakdown.toolScore, max: 20 },
     ];
 

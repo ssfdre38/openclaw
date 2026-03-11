@@ -100,6 +100,9 @@ const COMPLEX_KEYWORDS = [
   "reorganize",
   "migrate",
   "convert",
+  "update",
+  "modify",
+  "change",
 
   // Debugging
   "debug",
@@ -153,7 +156,6 @@ export function classifyTaskComplexity(
       score: context.forceComplexity === "complex" ? 100 : context.forceComplexity === "simple" ? 0 : 50,
       breakdown: {
         keywordScore: 0,
-        lengthScore: 0,
         contextScore: 0,
         toolScore: 0,
       },
@@ -186,17 +188,9 @@ export function classifyTaskComplexity(
     }
   }
 
-  // 2. LENGTH ANALYSIS (0-25 points)
-  let lengthScore = 0;
-  const promptLength = context.prompt.length;
-
-  if (promptLength < finalThresholds.simpleLengthMax) {
-    lengthScore = 0; // Very short = simple
-  } else if (promptLength < finalThresholds.moderateLengthMax) {
-    lengthScore = 15; // Medium = moderate
-  } else {
-    lengthScore = 25; // Long = complex
-  }
+  // 2. LENGTH ANALYSIS - REMOVED
+  // Message length doesn't indicate complexity. A short "refactor auth" is complex,
+  // while a long explanation can be simple. Focus on WHAT is being asked, not HOW MUCH text.
 
   // 3. CONTEXT ANALYSIS (0-25 points)
   let contextScore = 0;
@@ -228,8 +222,8 @@ export function classifyTaskComplexity(
     contextScore += 5; // Images/files = more complex
   }
 
-  // Total score
-  const totalScore = keywordScore + lengthScore + contextScore + toolScore;
+  // Total score (now max 95: keywords 50 + context 20 + tools 20 + attachments 5)
+  const totalScore = keywordScore + contextScore + toolScore;
 
   // Classify based on score
   let complexity: TaskComplexity;
@@ -260,7 +254,6 @@ export function classifyTaskComplexity(
     score: totalScore,
     breakdown: {
       keywordScore,
-      lengthScore,
       contextScore,
       toolScore,
     },
