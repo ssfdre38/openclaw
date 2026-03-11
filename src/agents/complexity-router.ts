@@ -13,6 +13,7 @@ import {
   type ClassificationResult,
   type RoutingDecision,
   type ComplexityRoutingConfig,
+  type ClassificationThresholds,
 } from "./complexity-routing.types.js";
 import {
   classifyTaskComplexity,
@@ -53,11 +54,16 @@ export function selectModelByComplexity(
   config: OpenClawConfig,
 ): RoutingDecision | null {
   try {
+    // Map config thresholds format to classifier format
+    const thresholds: ClassificationThresholds = routingConfig.thresholds
+      ? {
+          simpleScoreMax: (routingConfig.thresholds as any).simple ?? DEFAULT_THRESHOLDS.simpleScoreMax,
+          complexScoreMin: (routingConfig.thresholds as any).moderate ?? DEFAULT_THRESHOLDS.complexScoreMin,
+        }
+      : DEFAULT_THRESHOLDS;
+
     // Classify the task
-    const classification = classifyTaskComplexity(
-      context,
-      routingConfig.thresholds ?? DEFAULT_THRESHOLDS,
-    );
+    const classification = classifyTaskComplexity(context, thresholds);
 
     if (routingConfig.logDecisions) {
       log.info(
