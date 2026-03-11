@@ -630,6 +630,7 @@ export function registerModelsCli(program: Command) {
     .description("Show routing metrics and cost savings")
     .option("--hours <n>", "Show stats for last N hours", (val) => parseInt(val, 10))
     .option("--recent <n>", "Show N most recent decisions", (val) => parseInt(val, 10))
+    .option("--verbose", "Show detailed score breakdown", false)
     .option("--json", "Output JSON", false)
     .action(async (opts) => {
       await runModelsCommand(async () => {
@@ -637,6 +638,7 @@ export function registerModelsCli(program: Command) {
         await modelsRoutingStatsCommand(defaultRuntime, {
           hours: opts.hours as number | undefined,
           recent: opts.recent as number | undefined,
+          verbose: Boolean(opts.verbose),
           json: Boolean(opts.json),
         });
       });

@@ -11,6 +11,7 @@ interface StatsOptions {
   hours?: number;
   recent?: number;
   json?: boolean;
+  verbose?: boolean;
 }
 
 export async function modelsRoutingStatsCommand(
@@ -145,9 +146,22 @@ export async function modelsRoutingStatsCommand(
       console.log(
         chalk.dim(time) +
           ` ${icon} ${entry.complexity.padEnd(8)} ` +
-          chalk.cyan(entry.modelUsed.padEnd(40)) +
+          chalk.cyan(`score:${entry.score.toString().padStart(2)} `) +
+          chalk.dim(entry.modelUsed.padEnd(35)) +
           chalk.yellow(cost.padStart(10)),
       );
+
+      // Show breakdown if verbose
+      if (options.verbose && entry.breakdown) {
+        console.log(
+          chalk.dim("       └─ ") +
+            chalk.gray(
+              `keywords:${entry.breakdown.keywordScore} ` +
+              `context:${entry.breakdown.contextScore} ` +
+              `tools:${entry.breakdown.toolScore}`
+            )
+        );
+      }
     }
   }
 
@@ -160,8 +174,8 @@ export async function modelsRoutingStatsCommand(
   );
   console.log(
     chalk.dim("  • Use ") +
-      chalk.cyan("--recent 50") +
-      chalk.dim(" to see recent decisions"),
+      chalk.cyan("--recent 50 --verbose") +
+      chalk.dim(" to see score breakdown"),
   );
   console.log(
     chalk.dim("  • Use ") +

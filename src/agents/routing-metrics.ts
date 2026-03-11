@@ -16,6 +16,11 @@ export interface RoutingMetricsEntry {
   modelUsed: string;
   score: number;
   confidence?: number;
+  breakdown?: {
+    keywordScore: number;
+    contextScore: number;
+    toolScore: number;
+  };
   estimatedCost?: number;
   promptLength: number;
   reason?: string;
@@ -49,6 +54,7 @@ class RoutingMetricsStore {
       modelUsed: `${decision.provider}/${decision.model}`,
       score: decision.classification.score,
       confidence: decision.classification.confidence,
+      breakdown: decision.classification.breakdown,
       estimatedCost: decision.estimatedCost,
       promptLength,
       reason: decision.reason,

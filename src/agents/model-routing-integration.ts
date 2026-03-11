@@ -46,12 +46,15 @@ export function resolveModelWithRouting(
 
   if (routingDecision) {
     const modelRef = `${routingDecision.provider}/${routingDecision.model}`;
-    console.log("[ROUTING-DEBUG] Routing selected model:", modelRef, "complexity:", routingDecision.complexity);
-    log.debug("Routing selected model:", {
+    
+    // Enhanced logging with full breakdown
+    log.info("Routing selected model:", {
       model: modelRef,
       complexity: routingDecision.complexity,
       score: routingDecision.classification.score,
+      breakdown: routingDecision.classification.breakdown,
       reason: routingDecision.reason,
+      prompt_preview: context.prompt.substring(0, 100) + (context.prompt.length > 100 ? "..." : ""),
     });
 
     // Record metrics
