@@ -205,12 +205,12 @@ export function classifyTaskComplexity(
     contextScore += 10; // Working with files = more complex
   }
 
-  if ((context.conversationLength ?? 0) > 10) {
-    contextScore += 5; // Long conversation = more context needed
-  }
+  // Conversation length removed: message #50 isn't inherently more complex than message #5
+  // Users may have long conversations with simple messages or short conversations with complex ones
 
+  // Reduced from +10 to +5: code blocks in conversational context aren't always complex tasks
   if (context.hasCodeBlocks) {
-    contextScore += 10; // Code in prompt = likely complex
+    contextScore += 5; // Code in prompt = moderately complex
   }
 
   // 4. TOOL USAGE (0-20 points)
