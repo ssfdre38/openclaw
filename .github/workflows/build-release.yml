@@ -1,0 +1,91 @@
+name: Build and Release Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., v2026.3.2-ce)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-binaries:
+    name: Build Standalone Binaries
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build project
+        run: pnpm build
+      
+      - name: Build standalone binaries
+        run: bash scripts/build-binaries.sh --skip-build
+      
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: OpenClaw CE ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            binaries/*.zip
+          body: |
+            # OpenClaw CE ${{ steps.version.outputs.VERSION }}
+            
+            ## 📦 Standalone Binaries
+            
+            Download the standalone binary for your platform - no Node.js installation required!
+            
+            ### Quick Start
+            
+            1. Download the appropriate ZIP file for your platform
+            2. Extract the archive
+            3. Run `./openclaw onboard` (or `openclaw.exe onboard` on Windows)
+            4. Configure your AI models and channels
+            5. Run `./openclaw gateway` (or `openclaw.exe gateway` on Windows)
+            
+            ### Available Binaries
+            
+            - **Windows (x64)**: `openclaw-${{ steps.version.outputs.VERSION }}-windows-x64.zip`
+            - **Linux (x64)**: `openclaw-${{ steps.version.outputs.VERSION }}-linux-x64.zip`
+            - **macOS (Intel)**: `openclaw-${{ steps.version.outputs.VERSION }}-macos-x64.zip`
+            
+            ### Other Installation Options
+            
+            - **Automated Installer**: `irm https://raw.githubusercontent.com/ssfdre38/openclaw-community-edition/discord-fix/install.ps1 | iex`
+            - **Docker**: `docker pull ssfdre38/openclawce:latest`
+            
+            Visit https://openclawce.com/downloads for all installation options.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
