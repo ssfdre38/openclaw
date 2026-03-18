@@ -182,54 +182,46 @@ install_ollama_ce() {
     local ollama_path="$INSTALL_PATH/.ollama-ce"
     
     print_step "Ollama CE will be installed to: $ollama_path"
+    echo ""
     
     if [ -d "$ollama_path" ]; then
         print_warning "Ollama CE directory already exists"
-        
-        if ask_yes_no "Do you want to update it?"; then
-            cd "$ollama_path" || return 1
-            git pull origin community-edition
-            cd - >/dev/null || return 1
-            print_success "Ollama CE updated"
-        else
-            print_info "Skipping Ollama CE installation"
-            return 0
-        fi
-    else
-        print_step "Cloning Ollama CE from GitHub..."
-        
-        if git clone --depth 1 --branch community-edition https://github.com/ssfdre38/ollama.git "$ollama_path"; then
-            print_success "Ollama CE cloned"
-        else
-            print_error "Failed to clone Ollama CE"
-            return 1
-        fi
+        echo -e "${COLOR_INFO}To update, run the Ollama CE installer manually:${COLOR_RESET}"
+        echo -e "${COLOR_INFO}  curl -fsSL https://raw.githubusercontent.com/ssfdre38/ollama/community-edition/install.sh | bash${COLOR_RESET}"
+        return 0
     fi
     
-    cd "$ollama_path" || return 1
+    print_step "Downloading Ollama CE installer..."
     
-    print_step "Building Ollama CE..."
-    print_warning "This may take several minutes..."
+    local installer_url="https://raw.githubusercontent.com/ssfdre38/ollama/community-edition/install.sh"
+    local temp_installer="/tmp/ollama-ce-installer-$$.sh"
     
-    # Check if Go is installed
-    if ! command_exists go; then
-        print_error "Go is required to build Ollama CE"
-        echo -e "${COLOR_INFO}Please install Go from: https://go.dev/dl/${COLOR_RESET}"
-        cd - >/dev/null || return 1
+    if curl -fsSL "$installer_url" -o "$temp_installer"; then
+        print_success "Installer downloaded"
+        
+        print_step "Running Ollama CE installer..."
+        echo ""
+        
+        # Make installer executable
+        chmod +x "$temp_installer"
+        
+        # Execute the installer with custom path
+        if [ "$NON_INTERACTIVE" = "true" ]; then
+            bash "$temp_installer" --install-path "$ollama_path" --non-interactive
+        else
+            bash "$temp_installer" --install-path "$ollama_path"
+        fi
+        
+        # Clean up temp file
+        rm -f "$temp_installer"
+        
+        echo ""
+    else
+        print_error "Failed to download Ollama CE installer"
+        echo -e "${COLOR_INFO}You can install Ollama CE manually later:${COLOR_RESET}"
+        echo -e "${COLOR_INFO}  curl -fsSL https://raw.githubusercontent.com/ssfdre38/ollama/community-edition/install.sh | bash${COLOR_RESET}"
         return 1
     fi
-    
-    # Build Ollama
-    if go generate ./... && go build .; then
-        print_success "Ollama CE built successfully"
-        echo -e "${COLOR_INFO}Ollama CE executable: $ollama_path/ollama${COLOR_RESET}"
-    else
-        print_error "Failed to build Ollama CE"
-        cd - >/dev/null || return 1
-        return 1
-    fi
-    
-    cd - >/dev/null || return 1
 }
 
 initialize_configuration() {
@@ -276,7 +268,15 @@ show_next_steps() {
         echo -e "${COLOR_INFO}  3. Start Ollama CE (optional):${COLOR_RESET}"
         echo -e "${COLOR_INFO}     $INSTALL_PATH/.ollama-ce/ollama serve${COLOR_RESET}"
         echo ""
+        echo -e "${COLOR_INFO}     Pull a model:${COLOR_RESET}"
+        echo -e "${COLOR_INFO}     $INSTALL_PATH/.ollama-ce/ollama pull llama3.2${COLOR_RESET}"
+        echo ""
     fi
+    
+    echo -e "${COLOR_HEADER}Standalone Installers:${COLOR_RESET}"
+    echo -e "${COLOR_INFO}  Ollama CE: curl -fsSL https://raw.githubusercontent.com/ssfdre38/ollama/community-edition/install.sh | bash${COLOR_RESET}"
+    echo -e "${COLOR_INFO}  Image Gen: Not available on this platform (Windows only)${COLOR_RESET}"
+    echo ""
     
     echo -e "${COLOR_HEADER}For more information, visit:${COLOR_RESET}"
     echo -e "${COLOR_INFO}  https://openclawce.com${COLOR_RESET}"

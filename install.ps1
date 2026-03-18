@@ -289,7 +289,15 @@ function Show-NextSteps {
         Write-Host "  3. Start Ollama CE (optional):" -ForegroundColor $ColorInfo
         Write-Host "     $InstallPath\.ollama-ce\ollama.exe serve" -ForegroundColor $ColorInfo
         Write-Host ""
+        Write-Host "     Pull a model:" -ForegroundColor $ColorInfo
+        Write-Host "     $InstallPath\.ollama-ce\ollama.exe pull llama3.2" -ForegroundColor $ColorInfo
+        Write-Host ""
     }
+    
+    Write-Host "Standalone Installers:" -ForegroundColor $ColorHeader
+    Write-Host "  Ollama CE: irm https://raw.githubusercontent.com/ssfdre38/ollama/community-edition/install.ps1 | iex" -ForegroundColor $ColorInfo
+    Write-Host "  Image Gen: $InstallPath\scripts\setup-image-generation.ps1" -ForegroundColor $ColorInfo
+    Write-Host ""
     
     Write-Host "For more information, visit:" -ForegroundColor $ColorHeader
     Write-Host "  https://openclawce.com" -ForegroundColor $ColorInfo
