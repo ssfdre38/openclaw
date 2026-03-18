@@ -13,7 +13,10 @@ import {
   shouldDeferShellEnvFallback,
   shouldEnableShellEnvFallback,
 } from "../infra/shell-env.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { VERSION } from "../version.js";
+
+const log = createSubsystemLogger("config-io");
 import { DuplicateAgentDirError, findDuplicateAgentDirs } from "./agent-dirs.js";
 import { maintainConfigBackups } from "./backup-rotation.js";
 import {
@@ -1251,8 +1254,11 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         // Windows doesn't reliably support atomic replace via rename when dest exists.
         if (code === "EPERM" || code === "EEXIST") {
           await deps.fs.promises.copyFile(tmp, configPath);
-          await deps.fs.promises.chmod(configPath, 0o600).catch(() => {
-            // best-effort
+          await deps.fs.promises.chmod(configPath, 0o600).catch((err) => {
+            log.warn("failed to set config file permissions after copy fallback", { 
+              file: configPath, 
+              error: err 
+            });
           });
           await deps.fs.promises.unlink(tmp).catch(() => {
             // best-effort

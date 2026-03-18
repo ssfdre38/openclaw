@@ -4,7 +4,10 @@ import type { CanvasHostHandler, CanvasHostServer } from "../canvas-host/server.
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
 import { stopGmailWatcher } from "../hooks/gmail-watcher.js";
 import type { HeartbeatRunner } from "../infra/heartbeat-runner.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
+
+const log = createSubsystemLogger("gateway-close");
 
 export function createGatewayCloseHandler(params: {
   bonjourStop: (() => Promise<void>) | null;
@@ -66,7 +69,9 @@ export function createGatewayCloseHandler(params: {
       await params.stopChannel(plugin.id);
     }
     if (params.pluginServices) {
-      await params.pluginServices.stop().catch(() => {});
+      await params.pluginServices.stop().catch((err) => {
+        log.warn("failed to stop plugin services", { error: err });
+      });
     }
     await stopGmailWatcher();
     params.cron.stop();
@@ -110,9 +115,13 @@ export function createGatewayCloseHandler(params: {
       }
     }
     params.clients.clear();
-    await params.configReloader.stop().catch(() => {});
+    await params.configReloader.stop().catch((err) => {
+      log.warn("failed to stop config reloader", { error: err });
+    });
     if (params.browserControl) {
-      await params.browserControl.stop().catch(() => {});
+      await params.browserControl.stop().catch((err) => {
+        log.warn("failed to stop browser control", { error: err });
+      });
     }
     await new Promise<void>((resolve) => params.wss.close(() => resolve()));
     const servers =

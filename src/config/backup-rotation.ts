@@ -1,4 +1,7 @@
 import path from "node:path";
+import { createSubsystemLogger } from "../logging/subsystem.js";
+
+const log = createSubsystemLogger("config-backup");
 
 export const CONFIG_BACKUP_COUNT = 5;
 
@@ -50,13 +53,13 @@ export async function hardenBackupPermissions(
   }
   const backupBase = `${configPath}.bak`;
   // Harden the primary .bak
-  await ioFs.chmod(backupBase, 0o600).catch(() => {
-    // best-effort
+  await ioFs.chmod(backupBase, 0o600).catch((err) => {
+    log.warn("failed to set permissions on backup file", { file: backupBase, error: err });
   });
   // Harden numbered backups
   for (let i = 1; i < CONFIG_BACKUP_COUNT; i++) {
-    await ioFs.chmod(`${backupBase}.${i}`, 0o600).catch(() => {
-      // best-effort
+    await ioFs.chmod(`${backupBase}.${i}`, 0o600).catch((err) => {
+      log.warn("failed to set permissions on numbered backup", { file: `${backupBase}.${i}`, error: err });
     });
   }
 }

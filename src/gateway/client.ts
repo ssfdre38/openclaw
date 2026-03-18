@@ -410,9 +410,15 @@ export class GatewayClient {
     this.connectNonce = null;
     this.connectSent = false;
     const rawConnectDelayMs = this.opts.connectDelayMs;
+    
+    // Allow environment variable override for connection timeout
+    const envMaxTimeout = process.env.OPENCLAW_WS_CONNECT_TIMEOUT_MS;
+    const maxTimeout = envMaxTimeout ? Number.parseInt(envMaxTimeout, 10) : 10_000;
+    const effectiveMaxTimeout = Number.isFinite(maxTimeout) && maxTimeout > 0 ? maxTimeout : 10_000;
+    
     const connectChallengeTimeoutMs =
       typeof rawConnectDelayMs === "number" && Number.isFinite(rawConnectDelayMs)
-        ? Math.max(250, Math.min(10_000, rawConnectDelayMs))
+        ? Math.max(250, Math.min(effectiveMaxTimeout, rawConnectDelayMs))
         : 2_000;
     if (this.connectTimer) {
       clearTimeout(this.connectTimer);

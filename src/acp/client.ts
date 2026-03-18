@@ -373,7 +373,7 @@ export function resolveAcpClientSpawnInvocation(
     platform: runtime.platform,
     env: runtime.env,
     execPath: runtime.execPath,
-    packageName: "openclaw",
+    packageName: PACKAGE_NAME,
     allowShellFallback: true,
   });
   const resolved = materializeWindowsSpawnProgram(program, params.serverArgs);
@@ -497,7 +497,7 @@ export async function createAcpClient(opts: AcpClientOptions = {}): Promise<AcpC
       fs: { readTextFile: true, writeTextFile: true },
       terminal: true,
     },
-    clientInfo: { name: "openclaw-acp-client", version: "1.0.0" },
+    clientInfo: { name: `${PACKAGE_NAME}-acp-client`, version: PACKAGE_VERSION },
   });
 
   log("creating session");

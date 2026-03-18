@@ -4,14 +4,19 @@ title OpenClaw Gateway (Community Edition)
 
 cd /d E:\openclaw
 
+rem Use environment variable for port, default to 18789
+if "%OPENCLAW_GATEWAY_PORT%"=="" (
+    set OPENCLAW_GATEWAY_PORT=18789
+)
+
 echo.
 echo ================================================================================
 echo   OpenClaw Community Edition Gateway
-echo   Starting on port 18789...
+echo   Starting on port %OPENCLAW_GATEWAY_PORT%...
 echo ================================================================================
 echo.
 
-node dist\index.js gateway --port 18789 --verbose
+node dist\index.js gateway --port %OPENCLAW_GATEWAY_PORT% --verbose
 
 echo.
 echo ================================================================================

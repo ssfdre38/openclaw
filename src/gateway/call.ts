@@ -243,8 +243,13 @@ function resolveGatewayCallTimeout(timeoutValue: unknown): {
   timeoutMs: number;
   safeTimerTimeoutMs: number;
 } {
+  // Allow environment variable override for timeout (in milliseconds)
+  const envTimeout = process.env.OPENCLAW_GATEWAY_TIMEOUT_MS;
+  const defaultTimeout = envTimeout ? Number.parseInt(envTimeout, 10) : 10_000;
+  const effectiveDefault = Number.isFinite(defaultTimeout) && defaultTimeout > 0 ? defaultTimeout : 10_000;
+  
   const timeoutMs =
-    typeof timeoutValue === "number" && Number.isFinite(timeoutValue) ? timeoutValue : 10_000;
+    typeof timeoutValue === "number" && Number.isFinite(timeoutValue) ? timeoutValue : effectiveDefault;
   const safeTimerTimeoutMs = Math.max(1, Math.min(Math.floor(timeoutMs), 2_147_483_647));
   return { timeoutMs, safeTimerTimeoutMs };
 }

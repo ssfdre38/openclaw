@@ -50,3 +50,33 @@ export function isTruthyEnvValue(value?: string): boolean {
 export function normalizeEnv(): void {
   normalizeZaiEnv();
 }
+
+/**
+ * Get a required environment variable, throwing an error if it's not set or empty.
+ * Use this to validate critical environment variables at startup.
+ * @param key - Environment variable name
+ * @param description - Human-readable description for error message
+ * @returns The environment variable value
+ * @throws Error if the variable is not set or is empty
+ */
+export function getRequiredEnv(key: string, description?: string): string {
+  const value = process.env[key];
+  if (!value || !value.trim()) {
+    const message = description 
+      ? `Required environment variable ${key} is not set. ${description}`
+      : `Required environment variable ${key} is not set`;
+    throw new Error(message);
+  }
+  return value.trim();
+}
+
+/**
+ * Get an optional environment variable with a default value.
+ * @param key - Environment variable name
+ * @param defaultValue - Default value if env var is not set
+ * @returns The environment variable value or default
+ */
+export function getEnvOrDefault(key: string, defaultValue: string): string {
+  const value = process.env[key];
+  return (value && value.trim()) || defaultValue;
+}

@@ -5,6 +5,7 @@ import type {
   GatewayTrustedProxyConfig,
 } from "../config/config.js";
 import { readTailscaleWhoisIdentity, type TailscaleWhoisIdentity } from "../infra/tailscale.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import { safeEqualSecret } from "../security/secret-equal.js";
 import {
   AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET,
@@ -18,6 +19,8 @@ import {
   isTrustedProxyAddress,
   resolveClientIp,
 } from "./net.js";
+
+const log = createSubsystemLogger("gateway-auth");
 
 export type ResolvedGatewayAuthMode = "none" | "token" | "password" | "trusted-proxy";
 export type ResolvedGatewayAuthModeSource =
@@ -298,7 +301,24 @@ export function assertGatewayAuthConfigured(auth: ResolvedGatewayAuth): void {
     );
   }
   if (auth.mode === "password" && !auth.password) {
-    throw new Error("gateway auth mode is password, but no password was configured");
+    throw new Error(
+      "gateway auth mode is password, but no password was configured (set gateway.auth.password or OPENCLAW_GATEWAY_PASSWORD)",
+    );
+  }
+  if (auth.mode === "password" && auth.password) {
+    // Enforce minimum password length for security
+    if (auth.password.length < 16) {
+      throw new Error(
+        "gateway auth password must be at least 16 characters long for security. Current length: " +
+          auth.password.length,
+      );
+    }
+    // Warn if password is weak (optional but recommended)
+    if (!/[a-z]/.test(auth.password) || !/[A-Z]/.test(auth.password) || !/[0-9]/.test(auth.password)) {
+      log.warn(
+        "gateway password should contain lowercase, uppercase, and numbers for better security",
+      );
+    }
   }
   if (auth.mode === "trusted-proxy") {
     if (!auth.trustedProxy) {

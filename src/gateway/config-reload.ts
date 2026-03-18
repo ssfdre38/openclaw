@@ -230,7 +230,9 @@ export function startGatewayConfigReloader(opts: {
     }
     watcherClosed = true;
     opts.log.warn(`config watcher error: ${String(err)}`);
-    void watcher.close().catch(() => {});
+    void watcher.close().catch((closeErr) => {
+      opts.log.warn("failed to close config watcher", { error: closeErr });
+    });
   });
 
   return {
@@ -241,7 +243,9 @@ export function startGatewayConfigReloader(opts: {
       }
       debounceTimer = null;
       watcherClosed = true;
-      await watcher.close().catch(() => {});
+      await watcher.close().catch((err) => {
+        opts.log.warn("failed to close config watcher during stop", { error: err });
+      });
     },
   };
 }

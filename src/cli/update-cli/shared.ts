@@ -18,6 +18,7 @@ import {
 import type { UpdateStepProgress, UpdateStepResult } from "../../infra/update-runner.js";
 import { runCommandWithTimeout } from "../../process/exec.js";
 import { defaultRuntime } from "../../runtime.js";
+import { PACKAGE_NAME } from "../../metadata.js";
 import { theme } from "../../terminal/theme.js";
 import { pathExists } from "../../utils.js";
 
@@ -52,14 +53,14 @@ export function parseTimeoutMsOrExit(timeout?: string): number | undefined | nul
   return timeoutMs;
 }
 
-const OPENCLAW_REPO_URL = "https://github.com/openclaw/openclaw.git";
+const OPENCLAW_REPO_URL = `https://github.com/${PACKAGE_NAME}/${PACKAGE_NAME}.git`;
 const MAX_LOG_CHARS = 8000;
 
-export const DEFAULT_PACKAGE_NAME = "openclaw";
+export const DEFAULT_PACKAGE_NAME = PACKAGE_NAME;
 const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME]);
 
 export function normalizeTag(value?: string | null): string | null {
-  return normalizePackageTagInput(value, ["openclaw", DEFAULT_PACKAGE_NAME]);
+  return normalizePackageTagInput(value, [PACKAGE_NAME, DEFAULT_PACKAGE_NAME]);
 }
 
 export function normalizeVersionTag(tag: string): string | null {

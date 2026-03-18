@@ -2,8 +2,9 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { PACKAGE_NAME } from "../metadata.js";
 
-const CORE_PACKAGE_NAMES = new Set(["openclaw"]);
+const CORE_PACKAGE_NAMES = new Set([PACKAGE_NAME]);
 
 async function readPackageName(dir: string): Promise<string | null> {
   try {

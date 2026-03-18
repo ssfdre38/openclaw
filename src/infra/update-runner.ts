@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { PACKAGE_NAME } from "../metadata.js";
 import { type CommandOptions, runCommandWithTimeout } from "../process/exec.js";
 import {
   resolveControlUiDistIndexHealth,
@@ -85,7 +86,7 @@ const DEFAULT_TIMEOUT_MS = 20 * 60_000;
 const MAX_LOG_CHARS = 8000;
 const PREFLIGHT_MAX_COMMITS = 10;
 const START_DIRS = ["cwd", "argv1", "process"];
-const DEFAULT_PACKAGE_NAME = "openclaw";
+const DEFAULT_PACKAGE_NAME = PACKAGE_NAME;
 const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME]);
 
 function normalizeDir(value?: string | null) {

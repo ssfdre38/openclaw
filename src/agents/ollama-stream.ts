@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { writeFileSync } from "node:fs";
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 import type {
   AssistantMessage,
@@ -303,12 +304,46 @@ function extractOllamaTools(tools: Tool[] | undefined): OllamaTool[] {
     if (typeof tool.name !== "string" || !tool.name) {
       continue;
     }
+    // Ollama expects ONLY the properties object, not a full JSON schema
+    // The Go unmarshaler expects: { "properties": { "param1": {...}, "param2": {...} } }
+    // NOT: { "type": "object", "properties": {...}, "required": [...] }
+    const schema = tool.parameters as any;
+    
+    // Extract only the properties from the schema
+    let parameters: Record<string, unknown>;
+    if (schema && typeof schema === 'object' && schema.properties) {
+      // Ollama wants just the properties wrapped in a { properties: {...} } object
+      parameters = {
+        type: 'object',
+        properties: schema.properties
+      };
+    } else if (schema && typeof schema === 'object') {
+      // Fallback: if no properties field, assume schema is already in correct format
+      parameters = schema;
+    } else {
+      parameters = { type: 'object', properties: {} };
+    }
+    
+    // DEBUG: Write first tool to file for inspection
+    if (result.length === 0) {
+      try {
+        const debugOutput = JSON.stringify({
+          name: tool.name,
+          originalSchema: schema,
+          extractedParams: parameters
+        }, null, 2);
+        writeFileSync('C:\\tmp\\openclaw\\ollama-tool-debug.json', debugOutput);
+      } catch (e) {
+        // Ignore file write errors
+      }
+    }
+    
     result.push({
       type: "function",
       function: {
         name: tool.name,
         description: typeof tool.description === "string" ? tool.description : "",
-        parameters: (tool.parameters ?? {}) as Record<string, unknown>,
+        parameters: parameters as Record<string, unknown>,
       },
     });
   }
@@ -437,6 +472,13 @@ export function createOllamaStreamFn(baseUrl: string): StreamFn {
           ...(ollamaTools.length > 0 ? { tools: ollamaTools } : {}),
           options: ollamaOptions,
         };
+
+        // DEBUG: Log complete request body
+        try {
+          writeFileSync('C:\\tmp\\openclaw\\ollama-full-request.json', JSON.stringify(body, null, 2));
+        } catch (e) {
+          // Ignore file write errors
+        }
 
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
