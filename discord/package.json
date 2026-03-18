@@ -1,0 +1,39 @@
+{
+  "name": "@openclaw/mcp-server-discord",
+  "version": "0.6.5",
+  "description": "Model Context Protocol server for Discord - emoji, sticker, and message tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-server-discord": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prepare": "npm run build",
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "discord",
+    "emoji",
+    "sticker",
+    "ai-tools"
+  ],
+  "author": "OpenClaw Community",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "discord.js": "^14.16.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
