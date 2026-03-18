@@ -229,6 +229,38 @@ We welcome contributions! If you've fixed a bug or added a feature:
 
 If your contribution is generally useful, consider submitting it to the upstream OpenClaw project at [openclaw/openclaw](https://github.com/openclaw/openclaw).
 
+## Optional: Ollama Community Edition
+
+Install Ollama CE standalone for local AI model hosting:
+
+**Windows:**
+```powershell
+.\scripts\setup-ollama-ce.ps1
+```
+
+**Linux/macOS:**
+```bash
+bash scripts/setup-ollama-ce.sh
+```
+
+This installs:
+- 🤖 Ollama CE to `~/.ollama-ce`
+- 🔧 Builds from source with Go
+- 🚀 Ready to pull and run local models (llama3.2, codellama, etc.)
+
+Start Ollama CE:
+```bash
+~/.ollama-ce/ollama serve
+```
+
+Pull and run a model:
+```bash
+~/.ollama-ce/ollama pull llama3.2
+~/.ollama-ce/ollama run llama3.2
+```
+
+**Note:** The main OpenClaw installer (`install.ps1`/`install.sh`) can also install Ollama CE automatically during setup.
+
 ## Optional: Image Generation Setup
 
 Add local Stable Diffusion & SDXL image generation to OpenClaw (Windows only):
