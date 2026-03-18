@@ -277,9 +277,12 @@ function Show-NextSteps {
     Write-Host "  1. Configure your settings:" -ForegroundColor $ColorInfo
     Write-Host "     Edit: $InstallPath\.env" -ForegroundColor $ColorInfo
     Write-Host ""
-    Write-Host "  2. Start OpenClaw Gateway:" -ForegroundColor $ColorInfo
+    Write-Host "  2. Run the interactive onboarding:" -ForegroundColor $ColorInfo
     Write-Host "     cd $InstallPath" -ForegroundColor $ColorInfo
-    Write-Host "     .\start-gateway.cmd" -ForegroundColor $ColorInfo
+    Write-Host "     openclaw onboard" -ForegroundColor $ColorInfo
+    Write-Host ""
+    Write-Host "  3. Start OpenClaw Gateway:" -ForegroundColor $ColorInfo
+    Write-Host "     openclaw gateway" -ForegroundColor $ColorInfo
     Write-Host ""
     
     if (Test-Path "$InstallPath\.ollama-ce\ollama.exe") {

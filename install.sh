@@ -264,9 +264,12 @@ show_next_steps() {
     echo -e "${COLOR_INFO}  1. Configure your settings:${COLOR_RESET}"
     echo -e "${COLOR_INFO}     Edit: $INSTALL_PATH/.env${COLOR_RESET}"
     echo ""
-    echo -e "${COLOR_INFO}  2. Start OpenClaw Gateway:${COLOR_RESET}"
+    echo -e "${COLOR_INFO}  2. Run the interactive onboarding:${COLOR_RESET}"
     echo -e "${COLOR_INFO}     cd $INSTALL_PATH${COLOR_RESET}"
-    echo -e "${COLOR_INFO}     node openclaw.mjs${COLOR_RESET}"
+    echo -e "${COLOR_INFO}     openclaw onboard${COLOR_RESET}"
+    echo ""
+    echo -e "${COLOR_INFO}  3. Start OpenClaw Gateway:${COLOR_RESET}"
+    echo -e "${COLOR_INFO}     openclaw gateway${COLOR_RESET}"
     echo ""
     
     if [ -f "$INSTALL_PATH/.ollama-ce/ollama" ]; then

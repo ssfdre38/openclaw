@@ -178,10 +178,15 @@ bash install.sh --install-path /opt/openclaw
 bash install.sh --non-interactive
 ```
 
-After installation, start OpenClaw:
+After installation, run the interactive onboarding:
 ```bash
 cd ~/.openclaw
-node openclaw.mjs
+openclaw onboard
+```
+
+Then start the gateway:
+```bash
+openclaw gateway
 ```
 
 ### Manual Installation
