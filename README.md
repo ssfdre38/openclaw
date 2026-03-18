@@ -142,9 +142,49 @@ Enhanced web UI for gateway control:
 - Enhanced inline code documentation
 - Community Edition README with fork-specific guidance
 
-## Installation (Community Edition)
+## Installation
 
-Runtime: **Node ≥22**.
+**Requirements:** Git, Node.js 18+ (Node 22+ recommended)
+
+### Automated Installation (Recommended)
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/ssfdre38/openclaw-community-edition/discord-fix/install.ps1 | iex
+```
+
+**Linux/macOS (Bash):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/ssfdre38/openclaw-community-edition/discord-fix/install.sh | bash
+```
+
+The installer will:
+- ✅ Verify prerequisites (Git, Node.js 18+)
+- ✅ Install pnpm package manager
+- ✅ Clone OpenClaw CE to `~/.openclaw` (or custom path)
+- ✅ Install dependencies and build the project
+- ✅ Optionally install [Ollama CE](https://github.com/ssfdre38/ollama/tree/community-edition)
+- ✅ Create configuration file from template
+
+**Installer Options:**
+```bash
+# Skip Ollama CE installation
+bash install.sh --skip-ollama
+
+# Custom installation path
+bash install.sh --install-path /opt/openclaw
+
+# Non-interactive mode (uses defaults)
+bash install.sh --non-interactive
+```
+
+After installation, start OpenClaw:
+```bash
+cd ~/.openclaw
+node openclaw.mjs
+```
+
+### Manual Installation
 
 ```bash
 # Clone the community edition
@@ -157,6 +197,8 @@ git checkout discord-fix  # For precision fixes
 git checkout main         # For upstream tracking
 
 # Install dependencies
+pnpm install
+pnpm build
 ## Upstream Documentation
 
 For general OpenClaw documentation, see the official docs:
@@ -181,6 +223,31 @@ We welcome contributions! If you've fixed a bug or added a feature:
 ### Submitting to Upstream
 
 If your contribution is generally useful, consider submitting it to the upstream OpenClaw project at [openclaw/openclaw](https://github.com/openclaw/openclaw).
+
+## Optional: Image Generation Setup
+
+Add local Stable Diffusion & SDXL image generation to OpenClaw (Windows only):
+
+**Windows:**
+```powershell
+# From OpenClaw installation directory
+.\scripts\setup-image-generation.ps1
+```
+
+This sets up:
+- 🎨 Python 3.10 virtual environment
+- 🎨 Stable Diffusion 1.5 (fast, ~5-10 min per image at 512x512)
+- 🎨 SDXL (quality, ~15-25 min per image at 1024x1024)
+- 🌐 Web UI at http://localhost:7860
+- 🔌 REST API for OpenClaw integration
+
+Models auto-download on first use (~10 GB total).
+
+Start the image server:
+```bash
+cd E:\stable-diffusion  # or your install path
+start_server.bat
+```
 
 ## Development from Source
 
