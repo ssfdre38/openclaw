@@ -5,7 +5,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, type GuildMember } from "discord.js";
 import { z } from "zod";
 
 // Environment validation
@@ -559,6 +559,66 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["description"],
+        },
+      },
+      {
+        name: "discord_send_message",
+        description:
+          "Send a text message to a Discord channel. Supports user mentions (@user), role mentions (@role), and channel mentions (#channel). Use <@userId> for user mentions, <@&roleId> for role mentions, and <#channelId> for channel mentions. This is the primary tool for sending messages with mentions/pings.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            content: {
+              type: "string",
+              description: "Message content. Supports mentions: <@userId> for users, <@&roleId> for roles, <#channelId> for channels. Also supports custom emojis with <:name:id> syntax.",
+            },
+            channelId: {
+              type: "string",
+              description: "Discord channel ID to send the message to. Uses default if not provided.",
+            },
+            stickerId: {
+              type: "string",
+              description: "Optional: Attach a sticker to the message. Provide the sticker ID (from discord_list_stickers or discord_list_default_stickers).",
+            },
+          },
+          required: ["content"],
+        },
+      },
+      {
+        name: "discord_search_users",
+        description:
+          "Search for users in a Discord server by username or display name. Returns user IDs that can be used for mentions. Use this to find user IDs before mentioning them with discord_send_message.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Username or display name to search for (case-insensitive, partial matches allowed).",
+            },
+            guildId: {
+              type: "string",
+              description: "Discord server/guild ID. Uses default if not provided.",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "discord_get_channel_members",
+        description:
+          "List members who can access a specific channel. Returns user IDs and names. Useful for finding who to mention in a channel.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            channelId: {
+              type: "string",
+              description: "Discord channel ID. Uses default if not provided.",
+            },
+            limit: {
+              type: "number",
+              description: "Maximum number of members to return (default: 50, max: 100).",
+            },
+          },
         },
       },
     ],
@@ -1241,6 +1301,168 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: `Sent embed${title ? ` "${title}"` : ''} to channel`,
+            },
+          ],
+        };
+      }
+
+      case "discord_send_message": {
+        const { content, channelId: providedChannelId, stickerId } = z
+          .object({
+            content: z.string(),
+            channelId: z.coerce.string().optional(),
+            stickerId: z.string().optional(),
+          })
+          .parse(args);
+
+        const channelId = providedChannelId || defaultChannelId;
+        if (!channelId) {
+          throw new Error("No channel ID provided and DISCORD_DEFAULT_CHANNEL_ID not set");
+        }
+
+        const channel = await discord.channels.fetch(channelId);
+        if (!channel || !channel.isTextBased()) {
+          throw new Error(`Channel ${channelId} not found or is not text-based`);
+        }
+
+        if (!('send' in channel)) {
+          throw new Error(`Channel does not support sending messages`);
+        }
+
+        // Build message payload
+        const messagePayload: any = {
+          content: content,
+        };
+
+        // Add sticker if provided
+        if (stickerId) {
+          messagePayload.stickers = [stickerId];
+        }
+
+        const sentMessage = await channel.send(messagePayload);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Message sent to channel (ID: ${sentMessage.id})`,
+            },
+          ],
+        };
+      }
+
+      case "discord_search_users": {
+        const { query, guildId: providedGuildId } = z
+          .object({
+            query: z.string(),
+            guildId: z.string().optional(),
+          })
+          .parse(args);
+
+        const guildId = resolveGuildId({ guildId: providedGuildId });
+        const guild = await discord.guilds.fetch(guildId);
+        const members = await guild.members.fetch();
+
+        const searchLower = query.toLowerCase();
+        const matches = members.filter((member: GuildMember) => {
+          const username = member.user.username.toLowerCase();
+          const displayName = member.displayName.toLowerCase();
+          return username.includes(searchLower) || displayName.includes(searchLower);
+        });
+
+        if (matches.size === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `No users found matching "${query}"`,
+              },
+            ],
+          };
+        }
+
+        const lines = [`**Found ${matches.size} user(s) matching "${query}":**`, ""];
+        matches.forEach((member: GuildMember) => {
+          const username = member.user.username;
+          const displayName = member.displayName !== username ? ` (${member.displayName})` : '';
+          const mentionSyntax = `<@${member.user.id}>`;
+          lines.push(`- **${username}**${displayName}`);
+          lines.push(`  ID: \`${member.user.id}\``);
+          lines.push(`  Mention: \`${mentionSyntax}\``);
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: lines.join("\n"),
+            },
+          ],
+        };
+      }
+
+      case "discord_get_channel_members": {
+        const { channelId: providedChannelId, limit } = z
+          .object({
+            channelId: z.string().optional(),
+            limit: z.number().optional().default(50),
+          })
+          .parse(args);
+
+        const channelId = providedChannelId || defaultChannelId;
+        if (!channelId) {
+          throw new Error("No channel ID provided and DISCORD_DEFAULT_CHANNEL_ID not set");
+        }
+
+        const channel = await discord.channels.fetch(channelId);
+        if (!channel) {
+          throw new Error(`Channel ${channelId} not found`);
+        }
+
+        // Get guild from channel
+        const guildChannel = 'guild' in channel ? channel : null;
+        if (!guildChannel || !guildChannel.guild) {
+          throw new Error("Channel is not in a guild");
+        }
+
+        const guild = guildChannel.guild;
+        const members = await guild.members.fetch();
+
+        // Filter to members who can view the channel
+        const canViewChannel = members.filter((member: GuildMember) => {
+          if ('permissionsFor' in guildChannel) {
+            const perms = guildChannel.permissionsFor(member);
+            return perms?.has('ViewChannel') ?? false;
+          }
+          return false;
+        });
+
+        const limitedMembers = Array.from(canViewChannel.values()).slice(0, Math.min(limit, 100));
+
+        if (limitedMembers.length === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No members found with access to this channel",
+              },
+            ],
+          };
+        }
+
+        const lines = [`**${limitedMembers.length} member(s) with access to this channel:**`, ""];
+        limitedMembers.forEach((member: GuildMember) => {
+          const username = member.user.username;
+          const displayName = member.displayName !== username ? ` (${member.displayName})` : '';
+          const mentionSyntax = `<@${member.user.id}>`;
+          lines.push(`- **${username}**${displayName} - Mention: \`${mentionSyntax}\``);
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: lines.join("\n"),
             },
           ],
         };

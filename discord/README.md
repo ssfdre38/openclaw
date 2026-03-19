@@ -4,6 +4,9 @@ Model Context Protocol server for Discord - provides emoji, sticker, and messagi
 
 ## Features
 
+- 💬 **Send Messages** - Send text messages with user/role/channel mentions
+- 👥 **Search Users** - Find user IDs by username for mentions
+- 📋 **List Channel Members** - See who has access to a channel
 - 🎨 **List Custom Emojis** - Discover all custom emojis in a server with usage syntax
 - 🎭 **List Custom Stickers** - Browse server-specific stickers with IDs and format info
 - 🦞 **List Default Stickers** - See Discord's official sticker packs (Clyde, Wumpus, etc.) with IDs
@@ -82,10 +85,76 @@ Or use via npx (after publishing):
 
 - **`DISCORD_BOT_TOKEN`** (required) - Your Discord bot token
 - **`DISCORD_DEFAULT_GUILD_ID`** (optional) - Default guild/server ID to use
+- **`DISCORD_DEFAULT_CHANNEL_ID`** (optional) - Default channel ID for sending messages
 
 ## Tools
 
-### `discord_list_emojis`
+### Messaging Tools
+
+#### `discord_send_message`
+**✨ NEW!** Send a text message to a Discord channel with support for mentions.
+
+**Parameters:**
+- `content` (required) - Message content with mention support
+  - User mentions: `<@userId>` (e.g., `<@123456789>`)
+  - Role mentions: `<@&roleId>` (e.g., `<@&987654321>`)
+  - Channel mentions: `<#channelId>` (e.g., `<#555666777>`)
+  - Custom emojis: `<:name:id>` (e.g., `<:party:123456>`)
+- `channelId` (optional) - Channel ID, uses default if not provided
+- `stickerId` (optional) - Attach a sticker (from discord_list_stickers)
+
+**Example:**
+```javascript
+// Send message with user mention
+discord_send_message({
+  content: "Hey <@123456789>, great work on the PR!",
+  channelId: "555666777"
+})
+
+// Send message with role mention and emoji
+discord_send_message({
+  content: "<@&987654321> Meeting in 5 minutes! <:party_blob:123456>",
+})
+```
+
+#### `discord_search_users`
+**✨ NEW!** Search for users by username to get their IDs for mentions.
+
+**Parameters:**
+- `query` (required) - Username or display name (case-insensitive, partial match)
+- `guildId` (optional) - Guild ID, uses default if not provided
+
+**Example output:**
+```
+**Found 2 user(s) matching "john":**
+
+- **john_doe** (John D.)
+  ID: `123456789012345678`
+  Mention: `<@123456789012345678>`
+- **johnny**
+  ID: `987654321098765432`
+  Mention: `<@987654321098765432>`
+```
+
+#### `discord_get_channel_members`
+**✨ NEW!** List members who can access a specific channel.
+
+**Parameters:**
+- `channelId` (optional) - Channel ID, uses default if not provided
+- `limit` (optional) - Max members to return (default: 50, max: 100)
+
+**Example output:**
+```
+**50 member(s) with access to this channel:**
+
+- **alice** (Alice Smith) - Mention: `<@111222333>`
+- **bob_dev** (Bob) - Mention: `<@444555666>`
+- **charlie** - Mention: `<@777888999>`
+```
+
+### Discovery Tools
+
+#### `discord_list_emojis`
 Lists all custom emojis in a Discord server.
 
 **Parameters:**

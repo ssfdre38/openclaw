@@ -1,6 +1,6 @@
 {
   "name": "@openclaw/mcp-server-discord",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Model Context Protocol server for Discord - emoji, sticker, and message tools",
   "type": "module",
   "main": "dist/index.js",
