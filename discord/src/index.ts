@@ -224,6 +224,42 @@ function resolveGuildId(args: { guildId?: string }): string {
   return guildId;
 }
 
+// Utility: Resolve username mentions to user IDs
+// Converts <@username> to <@userId> by looking up the user in the guild
+async function resolveUsernameMentions(content: string, guildId: string): Promise<string> {
+  // Match patterns like <@username> but NOT <@123456789> (numeric IDs)
+  const mentionPattern = /<@([a-zA-Z0-9_\-\.]+)>/g;
+  const matches = content.matchAll(mentionPattern);
+  
+  let resolvedContent = content;
+  const guild = await discord.guilds.fetch(guildId);
+  const members = await guild.members.fetch();
+  
+  for (const match of matches) {
+    const username = match[1];
+    const originalMention = match[0]; // e.g., <@ssfdre38>
+    
+    // Check if it's already a numeric ID
+    if (/^\d+$/.test(username)) {
+      continue; // Already a user ID, skip
+    }
+    
+    // Search for member by username (case-insensitive)
+    const member = members.find((m: GuildMember) => 
+      m.user.username.toLowerCase() === username.toLowerCase()
+    );
+    
+    if (member) {
+      // Replace <@username> with <@userId>
+      const resolvedMention = `<@${member.user.id}>`;
+      resolvedContent = resolvedContent.replace(originalMention, resolvedMention);
+    }
+    // If not found, leave as-is (will show as plain text in Discord)
+  }
+  
+  return resolvedContent;
+}
+
 // MCP Server setup
 const server = new Server(
   {
@@ -564,13 +600,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "discord_send_message",
         description:
-          "Send a text message to a Discord channel. Supports user mentions (@user), role mentions (@role), and channel mentions (#channel). Use <@userId> for user mentions, <@&roleId> for role mentions, and <#channelId> for channel mentions. This is the primary tool for sending messages with mentions/pings.",
+          "Send a text message to a Discord channel. Automatically resolves username mentions (e.g., <@ssfdre38> becomes <@userId>). Also supports role mentions, channel mentions, and optional embeds.",
         inputSchema: {
           type: "object",
           properties: {
             content: {
               type: "string",
-              description: "Message content. Supports mentions: <@userId> for users, <@&roleId> for roles, <#channelId> for channels. Also supports custom emojis with <:name:id> syntax.",
+              description: "Message content. Supports: <@username> for user mentions (auto-resolved to IDs), <@&roleId> for roles, <#channelId> for channels, <:name:id> for custom emojis.",
             },
             channelId: {
               type: "string",
@@ -579,6 +615,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             stickerId: {
               type: "string",
               description: "Optional: Attach a sticker to the message. Provide the sticker ID (from discord_list_stickers or discord_list_default_stickers).",
+            },
+            embed: {
+              type: "object",
+              description: "Optional: Send an embed alongside the text message. Simple embed with title, description, and color.",
+              properties: {
+                title: { type: "string" },
+                description: { type: "string" },
+                color: { type: "string", description: "Hex color code (e.g., '#FF5733')" }
+              }
             },
           },
           required: ["content"],
@@ -1307,11 +1352,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "discord_send_message": {
-        const { content, channelId: providedChannelId, stickerId } = z
+        const { content, channelId: providedChannelId, stickerId, embed } = z
           .object({
             content: z.string(),
             channelId: z.coerce.string().optional(),
             stickerId: z.string().optional(),
+            embed: z.object({
+              title: z.string().optional(),
+              description: z.string().optional(),
+              color: z.string().optional(),
+            }).optional(),
           })
           .parse(args);
 
@@ -1329,14 +1379,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error(`Channel does not support sending messages`);
         }
 
+        // Get guild ID from channel for username resolution
+        const guildChannel = 'guild' in channel ? channel : null;
+        if (!guildChannel || !guildChannel.guild) {
+          throw new Error("Channel is not in a guild (DMs not supported for username mentions)");
+        }
+
+        // Resolve username mentions to user IDs (e.g., <@username> -> <@123456789>)
+        const resolvedContent = await resolveUsernameMentions(content, guildChannel.guild.id);
+
         // Build message payload
         const messagePayload: any = {
-          content: content,
+          content: resolvedContent,
         };
 
         // Add sticker if provided
         if (stickerId) {
           messagePayload.stickers = [stickerId];
+        }
+
+        // Add embed if provided
+        if (embed) {
+          const embedObj: any = {};
+          if (embed.title) embedObj.title = embed.title;
+          if (embed.description) embedObj.description = embed.description;
+          if (embed.color) {
+            // Convert hex color to decimal
+            const colorInt = parseInt(embed.color.replace('#', ''), 16);
+            embedObj.color = colorInt;
+          }
+          messagePayload.embeds = [embedObj];
         }
 
         const sentMessage = await channel.send(messagePayload);

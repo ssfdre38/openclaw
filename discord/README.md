@@ -92,33 +92,54 @@ Or use via npx (after publishing):
 ### Messaging Tools
 
 #### `discord_send_message`
-**✨ NEW!** Send a text message to a Discord channel with support for mentions.
+**✨ NEW!** Send a text message to a Discord channel with **automatic username resolution**.
+
+**Key Feature:** Write natural mentions like `<@ssfdre38>` and they auto-convert to user IDs!
 
 **Parameters:**
 - `content` (required) - Message content with mention support
-  - User mentions: `<@userId>` (e.g., `<@123456789>`)
+  - User mentions: `<@username>` **auto-resolves to ID** (e.g., `<@ssfdre38>` → `<@123456789>`)
+  - Direct ID mentions: `<@123456789>` also supported
   - Role mentions: `<@&roleId>` (e.g., `<@&987654321>`)
   - Channel mentions: `<#channelId>` (e.g., `<#555666777>`)
   - Custom emojis: `<:name:id>` (e.g., `<:party:123456>`)
 - `channelId` (optional) - Channel ID, uses default if not provided
 - `stickerId` (optional) - Attach a sticker (from discord_list_stickers)
+- `embed` (optional) - Add an embed with title, description, color
 
-**Example:**
+**Examples:**
 ```javascript
-// Send message with user mention
+// Natural username mention (auto-resolves)
 discord_send_message({
-  content: "Hey <@123456789>, great work on the PR!",
-  channelId: "555666777"
+  content: "Hey <@ssfdre38>, check this out!"
 })
 
-// Send message with role mention and emoji
+// Multiple username mentions
 discord_send_message({
-  content: "<@&987654321> Meeting in 5 minutes! <:party_blob:123456>",
+  content: "<@alice> <@bob> meeting in 5 minutes!"
+})
+
+// With embed
+discord_send_message({
+  content: "<@john> here's the summary:",
+  embed: {
+    title: "Project Status",
+    description: "All tasks complete!",
+    color: "#00FF00"
+  }
+})
+
+// With sticker and emoji
+discord_send_message({
+  content: "<@team_lead> Great work! <:party_blob:123>",
+  stickerId: "987654321"
 })
 ```
 
+**Note:** Username resolution is case-insensitive and automatic. No need to search for IDs first!
+
 #### `discord_search_users`
-**✨ NEW!** Search for users by username to get their IDs for mentions.
+**Optional tool** for when you need to find user IDs manually (most of the time, just use `<@username>` in discord_send_message).
 
 **Parameters:**
 - `query` (required) - Username or display name (case-insensitive, partial match)
